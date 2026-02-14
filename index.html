@@ -208,12 +208,24 @@
 </head>
 <body>
 
-<header>
+<!-- Login Screen -->
+<div id="loginScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;">
+  <div class="card" style="max-width:360px;text-align:center;">
+    <h1 style="color:var(--primary);margin-bottom:4px;">Lineup<span style="color:var(--accent);">IQ</span></h1>
+    <p style="color:var(--text-light);margin-bottom:20px;">Little League Majors</p>
+    <label style="text-align:left;">Enter Access Code</label>
+    <input type="password" id="loginPassword" placeholder="Access code" onkeydown="if(event.key==='Enter')checkPassword()" style="margin-bottom:12px;">
+    <button class="btn btn-primary" onclick="checkPassword()" style="width:100%;">Enter</button>
+    <p id="loginError" style="color:var(--danger);margin-top:8px;font-size:0.85rem;display:none;">Incorrect code. Try again.</p>
+  </div>
+</div>
+
+<header id="appHeader" style="display:none;">
   <h1>Lineup<span>IQ</span></h1>
   <div style="font-size:0.85rem;opacity:0.8;">Little League Majors</div>
 </header>
 
-<nav id="mainNav">
+<nav id="mainNav" style="display:none;">
   <button data-page="roster" class="active">Roster</button>
   <button data-page="schedule">Schedule</button>
   <button data-page="games">Games</button>
@@ -221,7 +233,7 @@
   <button data-page="rules">Rules</button>
 </nav>
 
-<main>
+<main id="appMain" style="display:none;">
 
 <!-- ===== ROSTER PAGE ===== -->
 <div id="page-roster" class="page active">
@@ -1884,7 +1896,32 @@ function importData(event) {
   event.target.value = '';
 }
 
+// ========== AUTH ==========
+const APP_CODE = 'Baseball55123';
+
+function checkPassword() {
+  const input = document.getElementById('loginPassword').value;
+  if (input === APP_CODE) {
+    sessionStorage.setItem('liq_auth', 'true');
+    showApp();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appHeader').style.display = '';
+  document.getElementById('mainNav').style.display = '';
+  document.getElementById('appMain').style.display = '';
+}
+
 // ========== INIT ==========
+if (sessionStorage.getItem('liq_auth') === 'true') {
+  showApp();
+} else {
+  document.getElementById('loginScreen').style.display = 'flex';
+}
 renderRoster();
 </script>
 </body>
