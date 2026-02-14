@@ -177,6 +177,21 @@
 
   /* Print */
   @media print {
+
+  /* Batting order drag list */
+  .batting-list { list-style: none; padding: 0; max-width: 400px; }
+  .batting-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 4px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: grab; user-select: none; transition: all 0.15s; }
+  .batting-item:active { cursor: grabbing; }
+  .batting-item.dragging { opacity: 0.4; background: #ebf5fb; }
+  .batting-item.drag-over { border-color: var(--primary); border-width: 2px; }
+  .batting-order-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+  .batting-grip { color: var(--text-light); font-size: 1.1rem; flex-shrink: 0; cursor: grab; }
+  .batting-name { flex: 1; font-weight: 600; font-size: 0.9rem; }
+  .batting-arrows { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; }
+  .batting-arrows button { background: none; border: 1px solid var(--border); width: 24px; height: 20px; cursor: pointer; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; color: var(--text-light); }
+  .batting-arrows button:hover { background: #f0f0f0; color: var(--text); }
+  .batting-arrows button:first-child { border-radius: 4px 4px 0 0; }
+  .batting-arrows button:last-child { border-radius: 0 0 4px 4px; border-top: none; }
     header, nav, .btn, .no-print { display: none !important; }
     .page { display: block !important; }
     .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
@@ -357,7 +372,7 @@
 
 <script>
 // ========== DATA LAYER ==========
-const STORAGE_KEYS = { players: 'liq_players', games: 'liq_games', rules: 'liq_rules', lineups: 'liq_lineups' };
+const STORAGE_KEYS = { players: 'liq_players', games: 'liq_games', rules: 'liq_rules', lineups: 'liq_lineups', battingOrder: 'liq_batting' };
 
 const DEFAULT_SKILLS = [
   'Fielding Ability', 'Outfield Ability', 'Infield Catching Ability',
@@ -386,6 +401,8 @@ function getGames() { return load(STORAGE_KEYS.games) || []; }
 function saveGames(g) { save(STORAGE_KEYS.games, g); }
 function getLineups() { return load(STORAGE_KEYS.lineups) || {}; }
 function saveLineups(l) { save(STORAGE_KEYS.lineups, l); }
+function getBattingOrder() { return load(STORAGE_KEYS.battingOrder) || []; }
+function saveBattingOrder(b) { save(STORAGE_KEYS.battingOrder, b); }
 
 function getRules() {
   const defaults = {
@@ -622,6 +639,7 @@ let currentGameId = null;
 let currentAbsent = [];
 let currentBattery = {};
 let currentLineup = null;
+let currentBattingOrder = [];
 
 function renderGamesList() {
   const games = getGames();
@@ -672,6 +690,7 @@ function openGame(gameId) {
   currentAbsent = existingLineup ? (existingLineup.absent || []) : [];
   currentBattery = existingLineup ? (existingLineup.battery || {}) : {};
   currentLineup = existingLineup ? existingLineup.assignments : null;
+  currentBattingOrder = existingLineup ? (existingLineup.battingOrder || getBattingOrder()) : getBattingOrder();
 
   document.getElementById('gamesList').innerHTML = '';
   const detail = document.getElementById('gameDetail');
@@ -706,6 +725,12 @@ function openGame(gameId) {
     </div>
 
     <div class="card no-print">
+      <h2>Step 3: Batting Order</h2>
+      <p style="color:var(--text-light);margin-bottom:12px;">Drag players to set the batting order. Order carries over from the previous game.</p>
+      <div id="battingOrderList"></div>
+    </div>
+
+    <div class="card no-print">
       <div class="btn-group">
         <button class="btn btn-accent" onclick="generateLineup()" style="font-size:1.1rem;padding:12px 32px;">⚡ Generate Lineup</button>
         <button class="btn btn-outline" onclick="clearLineup()">Clear Lineup</button>
@@ -719,6 +744,7 @@ function openGame(gameId) {
   detail.innerHTML = html;
   renderAbsenceList();
   renderBatteryPlan();
+  initBattingOrder();
   if (currentLineup) renderLineupOutput();
 }
 
@@ -743,6 +769,102 @@ function toggleAbsence(playerId) {
   } else {
     currentAbsent.push(playerId);
   }
+  initBattingOrder();
+}
+
+// ========== BATTING ORDER ==========
+function initBattingOrder() {
+  const players = getPlayers();
+  const available = players.filter(p => !currentAbsent.includes(p.id));
+  const availableIds = available.map(p => p.id);
+  
+  // Start from saved order, filter out absent players, append any new players
+  let order = currentBattingOrder.filter(id => availableIds.includes(id));
+  const missing = availableIds.filter(id => !order.includes(id));
+  order = [...order, ...missing];
+  currentBattingOrder = order;
+  renderBattingOrder();
+}
+
+let dragSrcIndex = null;
+
+function renderBattingOrder() {
+  const players = getPlayers();
+  const playerMap = {};
+  players.forEach(p => { playerMap[p.id] = p; });
+  const el = document.getElementById('battingOrderList');
+  
+  let html = '<ul class="batting-list">';
+  currentBattingOrder.forEach((id, i) => {
+    const p = playerMap[id];
+    if (!p) return;
+    html += `<li class="batting-item" draggable="true" data-idx="${i}"
+      ondragstart="battingDragStart(event, ${i})"
+      ondragover="battingDragOver(event)"
+      ondragenter="battingDragEnter(event)"
+      ondragleave="battingDragLeave(event)"
+      ondrop="battingDrop(event, ${i})"
+      ondragend="battingDragEnd(event)">
+      <span class="batting-grip">☰</span>
+      <span class="batting-order-num">${i + 1}</span>
+      <span class="batting-name">#${p.number} ${p.firstName} ${p.lastName}</span>
+      <span class="batting-arrows">
+        <button onclick="moveBatter(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button onclick="moveBatter(${i}, 1)" ${i === currentBattingOrder.length - 1 ? 'disabled' : ''}>▼</button>
+      </span>
+    </li>`;
+  });
+  html += '</ul>';
+  el.innerHTML = html;
+}
+
+function battingDragStart(e, idx) {
+  dragSrcIndex = idx;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function battingDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function battingDragEnter(e) {
+  const item = e.target.closest('.batting-item');
+  if (item) item.classList.add('drag-over');
+}
+
+function battingDragLeave(e) {
+  const item = e.target.closest('.batting-item');
+  if (item) item.classList.remove('drag-over');
+}
+
+function battingDrop(e, targetIdx) {
+  e.preventDefault();
+  const item = e.target.closest('.batting-item');
+  if (item) item.classList.remove('drag-over');
+  if (dragSrcIndex === null || dragSrcIndex === targetIdx) return;
+  
+  const moved = currentBattingOrder.splice(dragSrcIndex, 1)[0];
+  currentBattingOrder.splice(targetIdx, 0, moved);
+  saveBattingOrder(currentBattingOrder);
+  renderBattingOrder();
+}
+
+function battingDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.batting-item').forEach(el => el.classList.remove('drag-over'));
+  dragSrcIndex = null;
+}
+
+function moveBatter(idx, direction) {
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= currentBattingOrder.length) return;
+  const temp = currentBattingOrder[idx];
+  currentBattingOrder[idx] = currentBattingOrder[newIdx];
+  currentBattingOrder[newIdx] = temp;
+  saveBattingOrder(currentBattingOrder);
+  renderBattingOrder();
 }
 
 function renderBatteryPlan() {
@@ -1106,9 +1228,11 @@ function generateLineup() {
     assignments: currentLineup,
     absent: [...currentAbsent],
     battery: JSON.parse(JSON.stringify(currentBattery)),
+    battingOrder: [...currentBattingOrder],
     generatedAt: new Date().toISOString()
   };
   saveLineups(lineups);
+  saveBattingOrder(currentBattingOrder);
   
   renderLineupOutput();
 }
@@ -1289,6 +1413,22 @@ function openPrintView() {
     fieldPages += '</div>';
   }
 
+  // Build batting order for print
+  let battingHtml = '';
+  if (currentBattingOrder.length > 0) {
+    battingHtml = `<h3 style="text-align:center;margin:16px 0 8px;">Batting Order</h3>
+      <table style="width:auto;margin:0 auto;border-collapse:collapse;font-size:0.85rem;">
+      <thead><tr><th style="border-bottom:2px solid #333;padding:4px 12px;text-align:center;">#</th>
+      <th style="border-bottom:2px solid #333;padding:4px 12px;text-align:left;">Player</th></tr></thead><tbody>`;
+    currentBattingOrder.forEach((id, i) => {
+      const p = playerMap[id];
+      if (!p) return;
+      battingHtml += `<tr><td style="border-bottom:1px solid #ddd;padding:4px 12px;text-align:center;font-weight:700;">${i + 1}</td>
+        <td style="border-bottom:1px solid #ddd;padding:4px 12px;">#${p.number} ${p.firstName} ${p.lastName}</td></tr>`;
+    });
+    battingHtml += '</tbody></table>';
+  }
+
   // Open print window
   const printWindow = window.open('', '_blank');
   printWindow.document.write(`<!DOCTYPE html><html><head><title>LineupIQ - vs ${game.opponent}</title>
@@ -1305,6 +1445,7 @@ function openPrintView() {
       ${gameHeader}
       <h3 style="text-align:center;margin:12px 0;">Lineup Grid</h3>
       ${gridHtml}
+      ${battingHtml}
     </div>
     ${fieldPages}
   </body></html>`);
@@ -1697,7 +1838,8 @@ function exportData() {
     players: getPlayers(),
     games: getGames(),
     rules: getRules(),
-    lineups: getLineups()
+    lineups: getLineups(),
+    battingOrder: getBattingOrder()
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1720,6 +1862,7 @@ function importData(event) {
       if (data.games) saveGames(data.games);
       if (data.rules) saveRulesData(data.rules);
       if (data.lineups) saveLineups(data.lineups);
+      if (data.battingOrder) saveBattingOrder(data.battingOrder);
       renderRoster();
       alert('Data restored successfully!');
     } catch (err) {
