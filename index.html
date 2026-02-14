@@ -1435,12 +1435,18 @@ function openPrintView() {
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      .print-btn { display: block; margin: 16px auto; padding: 12px 32px; font-size: 1rem; font-weight: 600; background: #1a5276; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+      .print-btn:hover { background: #2980b9; }
       @media print {
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .no-print { display: none !important; }
       }
       @page { margin: 0.5in; }
     </style>
   </head><body>
+    <div class="no-print" style="text-align:center;padding:12px;background:#f5f6fa;border-bottom:1px solid #ddd;">
+      <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+    </div>
     <div style="padding:20px;">
       ${gameHeader}
       <h3 style="text-align:center;margin:12px 0;">Lineup Grid</h3>
@@ -1450,7 +1456,6 @@ function openPrintView() {
     ${fieldPages}
   </body></html>`);
   printWindow.document.close();
-  setTimeout(() => printWindow.print(), 500);
 }
 
 // ========== LINEUP OUTPUT (Grid + Diamond) ==========
@@ -1558,6 +1563,12 @@ function renderLineupOutput() {
     html += '</div>';
   }
   html += '</div></div>';
+
+  // Add print button at bottom of lineup
+  html += `<div class="card no-print" style="text-align:center;">
+    <button class="btn btn-primary" onclick="openPrintView()" style="font-size:1.1rem;padding:12px 32px;">🖨 Print Full Game Lineup</button>
+    <p style="color:var(--text-light);margin-top:8px;font-size:0.85rem;">Opens printable view: Page 1 = grid + batting order, Pages 2-7 = field diagrams</p>
+  </div>`;
 
   document.getElementById('lineupOutput').innerHTML = html;
 }
