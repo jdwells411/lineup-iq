@@ -709,6 +709,7 @@ function openGame(gameId) {
       <div class="btn-group">
         <button class="btn btn-accent" onclick="generateLineup()" style="font-size:1.1rem;padding:12px 32px;">⚡ Generate Lineup</button>
         <button class="btn btn-outline" onclick="clearLineup()">Clear Lineup</button>
+        <button class="btn btn-primary" onclick="openPrintView()">🖨 Print Lineup</button>
       </div>
     </div>
 
@@ -1166,6 +1167,149 @@ function clearLineup() {
   saveLineups(lineups);
   document.getElementById('lineupOutput').innerHTML = '';
   document.getElementById('lineupWarnings').innerHTML = '';
+}
+
+function openPrintView() {
+  if (!currentLineup) { alert('Generate a lineup first.'); return; }
+  const rules = getRules();
+  const game = getGames().find(g => g.id === currentGameId);
+  const allPlayers = getPlayers();
+  const available = allPlayers.filter(p => !currentAbsent.includes(p.id));
+  const playerMap = {};
+  allPlayers.forEach(p => { playerMap[p.id] = p; });
+
+  const dugout = game.homeAway === 'home' ? rules.homeDugout : (rules.homeDugout === '3B' ? '1B' : '3B');
+  const dateStr = game.date ? new Date(game.date + 'T00:00').toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'}) : '';
+  const timeStr = game.time ? formatTime(game.time) : '';
+
+  const fieldSVG = `<svg viewBox="0 0 520 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+    <path d="M 260 420 L 10 110 A 340 340 0 0 1 510 110 Z" fill="#4a8c3f" stroke="#3d7534" stroke-width="1"/>
+    <path d="M 260 375 L 120 230 L 260 145 L 400 230 Z" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+    <circle cx="260" cy="265" r="55" fill="#4a8c3f"/>
+    <circle cx="260" cy="285" r="14" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+    <circle cx="260" cy="285" r="3" fill="#fff"/>
+    <line x1="260" y1="375" x2="400" y2="250" stroke="#fff" stroke-width="2" opacity="0.6"/>
+    <line x1="400" y1="250" x2="260" y2="145" stroke="#fff" stroke-width="2" opacity="0.6"/>
+    <line x1="260" y1="145" x2="120" y2="250" stroke="#fff" stroke-width="2" opacity="0.6"/>
+    <line x1="120" y1="250" x2="260" y2="375" stroke="#fff" stroke-width="2" opacity="0.6"/>
+    <rect x="254" y="369" width="12" height="12" fill="#fff" transform="rotate(45 260 375)"/>
+    <rect x="394" y="244" width="11" height="11" fill="#fff" transform="rotate(45 400 250)"/>
+    <rect x="255" y="139" width="11" height="11" fill="#fff" transform="rotate(45 260 145)"/>
+    <rect x="115" y="244" width="11" height="11" fill="#fff" transform="rotate(45 120 250)"/>
+    <line x1="260" y1="420" x2="0" y2="90" stroke="#fff" stroke-width="2" opacity="0.4"/>
+    <line x1="260" y1="420" x2="520" y2="90" stroke="#fff" stroke-width="2" opacity="0.4"/>
+    <rect x="243" y="400" width="34" height="44" rx="3" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+    <path d="M 10 110 A 340 340 0 0 1 510 110" fill="none" stroke="#2c3e50" stroke-width="3" opacity="0.3"/>
+  </svg>`;
+
+  // Position coordinates for print (relative to 420x380 container)
+  const printPositions = {
+    P:  { left: '185px', top: '210px' },
+    C:  { left: '185px', top: '320px' },
+    '1B': { left: '300px', top: '205px' },
+    '2B': { left: '248px', top: '118px' },
+    SS: { left: '128px', top: '118px' },
+    '3B': { left: '68px',  top: '205px' },
+    LF: { left: '24px',  top: '48px' },
+    CF: { left: '185px', top: '10px' },
+    RF: { left: '346px', top: '48px' }
+  };
+
+  const gameHeader = `
+    <div style="text-align:center;margin-bottom:8px;">
+      <h1 style="margin:0;font-size:1.5rem;">LineupIQ</h1>
+      <h2 style="margin:4px 0;font-size:1.2rem;">vs ${game.opponent}</h2>
+      <div style="font-size:0.9rem;color:#666;">
+        ${dateStr} &bull; ${timeStr} &bull; ${game.location || 'TBD'} &bull; 
+        ${game.homeAway === 'home' ? 'Home' : 'Away'} &mdash; ${dugout} dugout
+      </div>
+    </div>`;
+
+  // Build grid page
+  let gridHtml = `<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+    <thead><tr><th style="text-align:left;border-bottom:2px solid #333;padding:4px 6px;">Player</th>`;
+  for (let i = 1; i <= rules.innings; i++) gridHtml += `<th style="text-align:center;border-bottom:2px solid #333;padding:4px 6px;">Inn ${i}</th>`;
+  gridHtml += `<th style="text-align:center;border-bottom:2px solid #333;padding:4px 6px;">IF</th>
+    <th style="text-align:center;border-bottom:2px solid #333;padding:4px 6px;">BN</th></tr></thead><tbody>`;
+
+  available.sort((a,b) => a.number - b.number).forEach(p => {
+    let ifCount = 0, benchCount = 0;
+    gridHtml += `<tr><td style="border-bottom:1px solid #ddd;padding:4px 6px;font-weight:600;">#${p.number} ${p.firstName} ${p.lastName}</td>`;
+    for (let inn = 1; inn <= rules.innings; inn++) {
+      const pos = Object.entries(currentLineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
+      const isBench = (currentLineup[inn]['BENCH'] || []).includes(p.id);
+      if (pos) {
+        const [position] = pos;
+        if (INFIELD.includes(position)) ifCount++;
+        gridHtml += `<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;${INFIELD.includes(position)?'background:#e8f4fd;':''}">${position}</td>`;
+      } else if (isBench) {
+        benchCount++;
+        gridHtml += '<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;background:#fef9e7;">BN</td>';
+      } else {
+        gridHtml += '<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;">-</td>';
+      }
+    }
+    gridHtml += `<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;font-weight:600;">${ifCount}</td>`;
+    gridHtml += `<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;">${benchCount}</td></tr>`;
+  });
+  gridHtml += '</tbody></table>';
+
+  // Build field pages
+  let fieldPages = '';
+  for (let inn = 1; inn <= rules.innings; inn++) {
+    fieldPages += `<div style="page-break-before:always;padding:20px;">`;
+    fieldPages += gameHeader;
+    fieldPages += `<h3 style="text-align:center;font-size:1.1rem;margin:12px 0;">Inning ${inn}</h3>`;
+    fieldPages += `<div style="position:relative;width:420px;height:380px;margin:0 auto;">`;
+    fieldPages += fieldSVG.replace('width:100%;height:100%', 'width:420px;height:380px');
+    
+    POSITIONS.forEach(pos => {
+      const pid = currentLineup[inn][pos];
+      const player = pid ? playerMap[pid] : null;
+      const name = player ? `#${player.number} ${player.firstName}` : '—';
+      const coords = printPositions[pos];
+      fieldPages += `<div style="position:absolute;left:${coords.left};top:${coords.top};text-align:center;">
+        <div style="width:52px;height:52px;border-radius:50%;background:#fff;border:2px solid #1a5276;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+          <span style="font-size:0.55rem;font-weight:700;color:#1a5276;text-transform:uppercase;">${pos}</span>
+          <span style="font-size:0.65rem;font-weight:600;">${name}</span>
+        </div>
+      </div>`;
+    });
+    fieldPages += '</div>';
+
+    const bench = currentLineup[inn]['BENCH'] || [];
+    if (bench.length > 0) {
+      fieldPages += '<div style="text-align:center;margin-top:12px;"><strong>Bench:</strong> ';
+      bench.forEach(pid => {
+        const p = playerMap[pid];
+        if (p) fieldPages += `<span style="background:#fef9e7;padding:2px 10px;border-radius:12px;font-size:0.8rem;font-weight:600;margin:0 4px;">#${p.number} ${p.firstName}</span>`;
+      });
+      fieldPages += '</div>';
+    }
+    fieldPages += '</div>';
+  }
+
+  // Open print window
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`<!DOCTYPE html><html><head><title>LineupIQ - vs ${game.opponent}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      @media print {
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      }
+      @page { margin: 0.5in; }
+    </style>
+  </head><body>
+    <div style="padding:20px;">
+      ${gameHeader}
+      <h3 style="text-align:center;margin:12px 0;">Lineup Grid</h3>
+      ${gridHtml}
+    </div>
+    ${fieldPages}
+  </body></html>`);
+  printWindow.document.close();
+  setTimeout(() => printWindow.print(), 500);
 }
 
 // ========== LINEUP OUTPUT (Grid + Diamond) ==========
