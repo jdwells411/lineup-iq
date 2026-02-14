@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a5276">
 <link rel="manifest" href="manifest.json">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <title>LineupIQ</title>
 <style>
   :root {
@@ -408,8 +410,60 @@
 </div>
 
 <script>
+// ========== FIREBASE INIT ==========
+firebase.initializeApp({
+  apiKey: "AIzaSyDleUDApX92_HE42hpwa4ZFh2nnwCFsjUU",
+  authDomain: "lineup-iq.firebaseapp.com",
+  projectId: "lineup-iq",
+  storageBucket: "lineup-iq.firebasestorage.app",
+  messagingSenderId: "29422573339",
+  appId: "1:29422573339:web:2b36703ba7dfdbe8a8a5be",
+  measurementId: "G-K7DB1G1DCT"
+});
+const db = firebase.firestore();
+
 // ========== DATA LAYER ==========
 const STORAGE_KEYS = { players: 'liq_players', games: 'liq_games', rules: 'liq_rules', lineups: 'liq_lineups', battingOrder: 'liq_batting', evalHistory: 'liq_evals' };
+
+// In-memory cache synced with Firestore
+const _cache = {};
+
+// Load from cache (populated by real-time listeners)
+function load(key) { return _cache[key] || null; }
+
+// Save to both cache and Firestore
+function save(key, data) {
+  _cache[key] = data;
+  db.collection('appData').doc(key).set({ value: JSON.stringify(data) })
+    .catch(err => console.error('Firestore save error:', err));
+}
+
+// Real-time listeners — keeps all clients in sync
+const COLLECTION_KEYS = Object.values(STORAGE_KEYS);
+function initRealtimeSync() {
+  COLLECTION_KEYS.forEach(key => {
+    db.collection('appData').doc(key).onSnapshot(doc => {
+      if (doc.exists) {
+        try {
+          _cache[key] = JSON.parse(doc.data().value);
+        } catch { _cache[key] = null; }
+      }
+      refreshCurrentPage();
+    });
+  });
+}
+
+// Re-render the active page when data changes from another client
+function refreshCurrentPage() {
+  const active = document.querySelector('#mainNav button.active');
+  if (!active) return;
+  const page = active.dataset.page;
+  if (page === 'roster') renderRoster();
+  else if (page === 'games') renderGamesList();
+  else if (page === 'season') renderSeasonStats();
+  else if (page === 'rules') renderRulesPage();
+  else if (page === 'schedule') renderSchedule();
+}
 
 const DEFAULT_SKILLS = [
   'Fielding Ability', 'Outfield Ability', 'Infield Catching Ability',
@@ -428,9 +482,6 @@ const DEFAULT_STRATEGIES = [
 
 const POSITIONS = ['P','C','1B','2B','SS','3B','LF','CF','RF'];
 const INFIELD = ['1B','2B','SS','3B'];
-
-function load(key) { try { return JSON.parse(localStorage.getItem(key)) || null; } catch { return null; } }
-function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
 
 function getPlayers() { return load(STORAGE_KEYS.players) || []; }
 function savePlayers(p) { save(STORAGE_KEYS.players, p); }
@@ -2118,6 +2169,8 @@ if (sessionStorage.getItem('liq_auth') === 'true') {
 } else {
   document.getElementById('loginScreen').style.display = 'flex';
 }
+// Start real-time sync with Firestore, then render
+initRealtimeSync();
 renderRoster();
 
 // Register service worker for PWA
