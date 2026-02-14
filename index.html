@@ -487,8 +487,7 @@ function renderRoster() {
       html += `<td>${val}</td>`;
     });
     html += `<td>
-      <button class="btn btn-accent btn-sm" onclick="showEvalModal('${p.id}')">Evaluate</button>
-      <button class="btn btn-outline btn-sm" onclick="editPlayer('${p.id}')">Edit</button>
+      <button class="btn btn-accent btn-sm" onclick="showEvalModal('${p.id}')">Edit</button>
       <button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">✕</button>
     </td>`;
     html += '</tr>';
@@ -582,11 +581,16 @@ function showEvalModal(id) {
   const modal = document.getElementById('evalModal');
   
   document.getElementById('evalPlayerId').value = id;
-  document.getElementById('evalModalTitle').textContent = `Evaluate: #${player.number} ${player.firstName} ${player.lastName}`;
+  document.getElementById('evalModalTitle').textContent = `#${player.number} ${player.firstName} ${player.lastName}`;
   document.getElementById('evalNotes').value = '';
 
-  // Build before/after skill grid
-  let html = '<table style="width:100%;"><thead><tr><th style="text-align:left;">Skill</th><th style="text-align:center;">Current</th><th style="text-align:center;">New</th><th></th></tr></thead><tbody>';
+  // Build name/number fields + before/after skill grid
+  let html = `<div class="form-row" style="margin-bottom:16px;">
+    <div><label>First Name</label><input type="text" id="evalFirstName" value="${player.firstName}"></div>
+    <div><label>Last Name</label><input type="text" id="evalLastName" value="${player.lastName}"></div>
+    <div><label>Jersey #</label><input type="number" id="evalNumber" value="${player.number}" min="0" max="99"></div>
+  </div>`;
+  html += '<table style="width:100%;"><thead><tr><th style="text-align:left;">Skill</th><th style="text-align:center;">Current</th><th style="text-align:center;">New</th><th></th></tr></thead><tbody>';
   rules.skillAttributes.forEach(attr => {
     const current = (player.skills && player.skills[attr]) || 0;
     html += `<tr>
@@ -646,8 +650,18 @@ function saveEvaluation() {
   const rules = getRules();
   const notes = document.getElementById('evalNotes').value.trim();
 
+  // Get name/number updates
+  const newFirst = document.getElementById('evalFirstName').value.trim();
+  const newLast = document.getElementById('evalLastName').value.trim();
+  const newNumber = parseInt(document.getElementById('evalNumber').value) || 0;
+  if (!newFirst || !newLast) { alert('First and last name required.'); return; }
+
   // Capture changes
   const changes = [];
+  if (newFirst !== player.firstName) changes.push({ attr: 'First Name', from: player.firstName, to: newFirst });
+  if (newLast !== player.lastName) changes.push({ attr: 'Last Name', from: player.lastName, to: newLast });
+  if (newNumber !== player.number) changes.push({ attr: 'Jersey #', from: player.number, to: newNumber });
+
   const newSkills = {};
   rules.skillAttributes.forEach(attr => {
     const sel = document.querySelector(`[data-eval-skill="${attr}"]`);
@@ -683,6 +697,9 @@ function saveEvaluation() {
   saveEvalHistory(history);
 
   // Update player
+  player.firstName = newFirst;
+  player.lastName = newLast;
+  player.number = newNumber;
   player.skills = newSkills;
   player.canPitch = newPitch;
   player.canCatch = newCatch;
