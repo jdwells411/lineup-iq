@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LineupIQ</title>
+<style>
+  :root {
+    --primary: #1a5276;
+    --primary-light: #2980b9;
+    --accent: #27ae60;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --bg: #f5f6fa;
+    --card: #fff;
+    --text: #2c3e50;
+    --text-light: #7f8c8d;
+    --border: #dcdde1;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* Header */
+  header { background: var(--primary); color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+
+  /* Navigation */
+  nav { background: #fff; border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 0; }
+  nav button { background: none; border: none; padding: 12px 20px; font-size: 0.95rem; color: var(--text-light); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  nav button:hover { color: var(--text); background: #f0f0f0; }
+  nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* Main content */
+  main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 1.2rem; margin-bottom: 16px; color: var(--primary); }
+  .card h3 { font-size: 1rem; margin-bottom: 12px; }
+
+  /* Forms */
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+  input, select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9rem; }
+  input:focus, select:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 2px rgba(41,128,185,0.2); }
+  .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .form-row > * { flex: 1; }
+
+  /* Buttons */
+  .btn { padding: 8px 16px; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-light); }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { background: #219a52; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #c0392b; }
+  .btn-warning { background: var(--warning); color: #fff; }
+  .btn-warning:hover { background: #e67e22; }
+  .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+  .btn-outline { background: none; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { background: #f0f0f0; }
+  .btn-group { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f8f9fa; font-weight: 600; color: var(--text-light); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+  tr:hover { background: #f8f9fa; }
+
+  /* Skill rating */
+  .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .skill-item { display: flex; align-items: center; gap: 8px; }
+  .skill-item label { margin-bottom: 0; flex: 1; font-size: 0.82rem; }
+  .skill-item select { width: 60px; flex: 0 0 60px; }
+
+  /* Checkbox toggle */
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .toggle-row label { margin-bottom: 0; }
+  input[type="checkbox"] { width: auto; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+  .tag-pitcher { background: #ebf5fb; color: #2980b9; }
+  .tag-catcher { background: #fef9e7; color: #f39c12; }
+  .tag-yes { background: #eafaf1; color: #27ae60; }
+  .tag-no { background: #fdedec; color: #e74c3c; }
+
+  /* Schedule table */
+  .schedule-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .schedule-row:last-child { border-bottom: none; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+  .badge-pending { background: #fef9e7; color: #f39c12; }
+  .badge-complete { background: #eafaf1; color: #27ae60; }
+  .badge-active { background: #ebf5fb; color: #2980b9; }
+
+  /* Game card */
+  .game-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; }
+  .game-card:hover { border-color: var(--primary-light); box-shadow: 0 2px 8px rgba(41,128,185,0.15); }
+  .game-card .game-header { display: flex; justify-content: space-between; align-items: center; }
+  .game-card .game-header h3 { font-size: 1rem; }
+  .game-card .game-details { display: flex; gap: 20px; margin-top: 8px; font-size: 0.85rem; color: var(--text-light); }
+  .game-card .game-details span { display: flex; align-items: center; gap: 4px; }
+  .dugout-indicator { font-weight: 600; }
+  .dugout-home { color: var(--accent); }
+  .dugout-away { color: var(--warning); }
+
+  /* Lineup grid */
+  .lineup-grid { overflow-x: auto; }
+  .lineup-grid table th, .lineup-grid table td { text-align: center; min-width: 80px; }
+  .lineup-grid table td:first-child, .lineup-grid table th:first-child { text-align: left; min-width: 140px; position: sticky; left: 0; background: #fff; z-index: 1; }
+  .lineup-grid table th:first-child { background: #f8f9fa; }
+  .lineup-grid select { width: 100%; font-size: 0.8rem; padding: 4px; }
+  .lineup-grid .bench-cell { background: #fef9e7; }
+  .lineup-grid .absent-row { opacity: 0.4; }
+
+  /* Diamond */
+  .diamond-container { position: relative; width: 340px; height: 340px; margin: 20px auto; }
+  .diamond-pos { position: absolute; background: var(--card); border: 2px solid var(--primary); border-radius: 50%; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; box-shadow: var(--shadow); }
+  .diamond-pos .pos-label { color: var(--text-light); font-size: 0.6rem; text-transform: uppercase; }
+  .diamond-pos .pos-player { color: var(--text); font-size: 0.75rem; }
+  .pos-P { left: 140px; top: 180px; }
+  .pos-C { left: 140px; top: 280px; }
+  .pos-1B { left: 260px; top: 160px; }
+  .pos-2B { left: 220px; top: 100px; }
+  .pos-SS { left: 80px; top: 100px; }
+  .pos-3B { left: 20px; top: 160px; }
+  .pos-LF { left: 10px; top: 20px; }
+  .pos-CF { left: 140px; top: 0px; }
+  .pos-RF { left: 270px; top: 20px; }
+
+  /* Bench list */
+  .bench-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .bench-player { background: #fef9e7; padding: 4px 12px; border-radius: 16px; font-size: 0.8rem; font-weight: 600; }
+
+  /* Warnings */
+  .warning-box { background: #fef9e7; border-left: 4px solid var(--warning); padding: 12px 16px; margin-bottom: 12px; border-radius: 0 4px 4px 0; }
+  .warning-box .warning-title { font-weight: 600; color: var(--warning); margin-bottom: 4px; }
+  .error-box { background: #fdedec; border-left: 4px solid var(--danger); padding: 12px 16px; margin-bottom: 12px; border-radius: 0 4px 4px 0; }
+  .error-box .error-title { font-weight: 600; color: var(--danger); margin-bottom: 4px; }
+  .success-box { background: #eafaf1; border-left: 4px solid var(--accent); padding: 12px 16px; margin-bottom: 12px; border-radius: 0 4px 4px 0; }
+
+  /* Inning tabs */
+  .inning-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .inning-tab { padding: 8px 16px; border: 1px solid var(--border); border-radius: 4px 4px 0 0; cursor: pointer; font-weight: 600; font-size: 0.85rem; background: #f8f9fa; }
+  .inning-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* Battery plan grid */
+  .battery-grid { display: grid; grid-template-columns: auto repeat(6, 1fr); gap: 8px; align-items: center; }
+  .battery-grid label { font-size: 0.85rem; }
+  .battery-grid select { font-size: 0.8rem; padding: 4px; }
+
+  /* Season stats */
+  .stat-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .stat-bar-fill { height: 8px; border-radius: 4px; background: var(--primary-light); }
+  .stat-bar-track { flex: 1; height: 8px; border-radius: 4px; background: #ecf0f1; overflow: hidden; }
+  .stat-met { color: var(--accent); }
+  .stat-unmet { color: var(--danger); font-weight: 600; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 40px; color: var(--text-light); }
+  .empty-state h3 { margin-bottom: 8px; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: #fff; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { margin-bottom: 16px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  /* Print */
+  @media print {
+    header, nav, .btn, .no-print { display: none !important; }
+    .page { display: block !important; }
+    .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+    body { background: #fff; }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    nav { overflow-x: auto; }
+    .form-row { flex-direction: column; }
+    .diamond-container { transform: scale(0.85); transform-origin: top center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lineup<span>IQ</span></h1>
+  <div style="font-size:0.85rem;opacity:0.8;">Little League Majors</div>
+</header>
+
+<nav id="mainNav">
+  <button data-page="roster" class="active">Roster</button>
+  <button data-page="schedule">Schedule</button>
+  <button data-page="games">Games</button>
+  <button data-page="season">Season Stats</button>
+  <button data-page="rules">Rules</button>
+</nav>
+
+<main>
+
+<!-- ===== ROSTER PAGE ===== -->
+<div id="page-roster" class="page active">
+  <div class="card">
+    <h2>Team Roster</h2>
+    <p style="color:var(--text-light);margin-bottom:16px;">Add players, rate their skills (1-5), and flag pitchers/catchers. Roster persists all season.</p>
+    <div class="btn-group no-print" style="margin-bottom:16px;">
+      <button class="btn btn-primary" onclick="showPlayerModal()">+ Add Player</button>
+      <button class="btn btn-outline" onclick="loadSeedData()">Load Sample Data</button>
+    </div>
+    <div id="rosterTable"></div>
+  </div>
+</div>
+
+<!-- ===== SCHEDULE PAGE ===== -->
+<div id="page-schedule" class="page">
+  <div class="card">
+    <h2>Season Schedule</h2>
+    <p style="color:var(--text-light);margin-bottom:16px;">Enter all games for the season. Home team gets the 3rd base dugout.</p>
+    <div class="btn-group no-print" style="margin-bottom:16px;">
+      <button class="btn btn-primary" onclick="showGameModal()">+ Add Game</button>
+    </div>
+    <div id="scheduleTable"></div>
+  </div>
+</div>
+
+<!-- ===== GAMES PAGE (per-game lineup) ===== -->
+<div id="page-games" class="page">
+  <div id="gamesList"></div>
+  <div id="gameDetail" style="display:none;"></div>
+</div>
+
+<!-- ===== SEASON STATS PAGE ===== -->
+<div id="page-season" class="page">
+  <div class="card">
+    <h2>Season Statistics</h2>
+    <p style="color:var(--text-light);margin-bottom:16px;">Cumulative stats across all games. Flags players who haven't met season requirements.</p>
+    <div id="seasonStats"></div>
+  </div>
+</div>
+
+<!-- ===== RULES PAGE ===== -->
+<div id="page-rules" class="page">
+  <div class="card">
+    <h2>Rules Configuration</h2>
+    <p style="color:var(--text-light);margin-bottom:16px;">Adjust game rules, skill attributes, and coaching strategy. Changes take effect on next lineup generation.</p>
+    
+    <h3 style="margin-top:16px;">Game Rules</h3>
+    <div class="form-row">
+      <div><label>Innings per Game</label><input type="number" id="rule-innings" min="1" max="9" value="6" onchange="saveRules()"></div>
+      <div><label>Players per Roster</label><input type="number" id="rule-rosterSize" min="9" max="20" value="12" onchange="saveRules()"></div>
+      <div><label>Fielders per Inning</label><input type="number" id="rule-fielders" min="9" max="9" value="9" onchange="saveRules()"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Min Infield Innings (per game)</label><input type="number" id="rule-minInfield" min="0" max="6" value="2" onchange="saveRules()"></div>
+      <div><label>Min Pitching (season): Batters Faced</label><input type="number" id="rule-minPitchBatters" min="0" value="1" onchange="saveRules()"></div>
+      <div><label>Home Dugout</label>
+        <select id="rule-homeDugout" onchange="saveRules()">
+          <option value="3B">3rd Base Side</option>
+          <option value="1B">1st Base Side</option>
+        </select>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px;">Pitcher/Catcher Warnings</h3>
+    <div class="form-row">
+      <div><label>Catcher innings before no-pitch</label><input type="number" id="rule-catcherInningsLimit" min="1" value="4" onchange="saveRules()"></div>
+      <div><label>Pitcher pitches before no-catch</label><input type="number" id="rule-pitcherPitchLimit" min="1" value="41" onchange="saveRules()"></div>
+      <div><label>Pitcher pitches (≤3 inn) no return to catch</label><input type="number" id="rule-pitcherReturnLimit" min="1" value="21" onchange="saveRules()"></div>
+    </div>
+
+    <h3 style="margin-top:24px;">Skill Attributes</h3>
+    <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:12px;">These attributes are rated 1-5 for each player.</p>
+    <div id="skillAttrList"></div>
+    <div class="btn-group" style="margin-top:8px;">
+      <input type="text" id="newSkillAttr" placeholder="New attribute name" style="width:200px;">
+      <button class="btn btn-outline btn-sm" onclick="addSkillAttribute()">+ Add</button>
+    </div>
+
+    <h3 style="margin-top:24px;">Coaching Strategy</h3>
+    <div id="strategyList"></div>
+    <div class="btn-group" style="margin-top:8px;">
+      <input type="text" id="newStrategy" placeholder="New strategy rule" style="width:400px;">
+      <button class="btn btn-outline btn-sm" onclick="addStrategy()">+ Add</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- Player Modal -->
+<div class="modal-overlay" id="playerModal">
+  <div class="modal">
+    <h2 id="playerModalTitle">Add Player</h2>
+    <input type="hidden" id="playerId">
+    <div class="form-row">
+      <div><label>First Name</label><input type="text" id="playerFirst"></div>
+      <div><label>Last Name</label><input type="text" id="playerLast"></div>
+      <div><label>Jersey #</label><input type="number" id="playerNumber" min="0" max="99"></div>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="playerCanPitch"><label for="playerCanPitch">Can Pitch</label>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="playerCanCatch"><label for="playerCanCatch">Can Catch (catcher position)</label>
+    </div>
+    <h3 style="margin-top:16px;">Skill Ratings (1-5)</h3>
+    <div class="skill-grid" id="playerSkills"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closePlayerModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePlayer()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game Modal -->
+<div class="modal-overlay" id="gameModal">
+  <div class="modal">
+    <h2 id="gameModalTitle">Add Game</h2>
+    <input type="hidden" id="gameId">
+    <div class="form-row">
+      <div><label>Opponent</label><input type="text" id="gameOpponent"></div>
+      <div><label>Date</label><input type="date" id="gameDate"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Start Time</label><input type="time" id="gameTime"></div>
+      <div><label>Location</label><input type="text" id="gameLocation"></div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Home / Away</label>
+        <select id="gameHomeAway">
+          <option value="home">Home</option>
+          <option value="away">Away</option>
+        </select>
+      </div>
+      <div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeGameModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGame()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DATA LAYER ==========
+const STORAGE_KEYS = { players: 'liq_players', games: 'liq_games', rules: 'liq_rules', lineups: 'liq_lineups' };
+
+const DEFAULT_SKILLS = [
+  'Fielding Ability', 'Outfield Ability', 'Infield Catching Ability',
+  'Arm Accuracy', 'Arm Strength', 'Baseball IQ',
+  'Coachability', 'Attitude', 'Impact on Teammates', 'Agility'
+];
+
+const DEFAULT_STRATEGIES = [
+  'SS must be a strong infield player',
+  '1B must have good hands (catching ability) but doesn\'t need a strong arm',
+  'Weaker 2B must be paired with strong SS and strong 1B',
+  'Weaker 3B must be paired with a stronger LF',
+  'Infield should stay strong — weaker infielders surrounded by stronger ones',
+  'Pitcher and catcher assignments set by coach before generation'
+];
+
+const POSITIONS = ['P','C','1B','2B','SS','3B','LF','CF','RF'];
+const INFIELD = ['1B','2B','SS','3B'];
+
+function load(key) { try { return JSON.parse(localStorage.getItem(key)) || null; } catch { return null; } }
+function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+
+function getPlayers() { return load(STORAGE_KEYS.players) || []; }
+function savePlayers(p) { save(STORAGE_KEYS.players, p); }
+function getGames() { return load(STORAGE_KEYS.games) || []; }
+function saveGames(g) { save(STORAGE_KEYS.games, g); }
+function getLineups() { return load(STORAGE_KEYS.lineups) || {}; }
+function saveLineups(l) { save(STORAGE_KEYS.lineups, l); }
+
+function getRules() {
+  const defaults = {
+    innings: 6, rosterSize: 12, fielders: 9, minInfield: 2,
+    minPitchBatters: 1, homeDugout: '3B',
+    catcherInningsLimit: 4, pitcherPitchLimit: 41, pitcherReturnLimit: 21,
+    skillAttributes: [...DEFAULT_SKILLS],
+    strategies: [...DEFAULT_STRATEGIES]
+  };
+  return { ...defaults, ...(load(STORAGE_KEYS.rules) || {}) };
+}
+function saveRulesData(r) { save(STORAGE_KEYS.rules, r); }
+
+// ========== NAVIGATION ==========
+document.querySelectorAll('#mainNav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    if (btn.dataset.page === 'games') renderGamesList();
+    if (btn.dataset.page === 'season') renderSeasonStats();
+    if (btn.dataset.page === 'rules') renderRulesPage();
+    if (btn.dataset.page === 'roster') renderRoster();
+    if (btn.dataset.page === 'schedule') renderSchedule();
+  });
+});
+
+// ========== ROSTER ==========
+function renderRoster() {
+  const players = getPlayers();
+  const rules = getRules();
+  const el = document.getElementById('rosterTable');
+  if (players.length === 0) {
+    el.innerHTML = '<div class="empty-state"><h3>No players yet</h3><p>Add players to your roster or load sample data.</p></div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>#</th><th>Name</th><th>P</th><th>C</th>';
+  rules.skillAttributes.forEach(s => { html += `<th title="${s}">${s.split(' ').map(w=>w[0]).join('')}</th>`; });
+  html += '<th>Actions</th></tr></thead><tbody>';
+  players.sort((a,b) => a.number - b.number).forEach(p => {
+    html += `<tr><td>${p.number}</td><td>${p.firstName} ${p.lastName}</td>`;
+    html += `<td>${p.canPitch ? '<span class="tag tag-pitcher">P</span>' : ''}</td>`;
+    html += `<td>${p.canCatch ? '<span class="tag tag-catcher">C</span>' : ''}</td>`;
+    rules.skillAttributes.forEach(s => {
+      const val = (p.skills && p.skills[s]) || '-';
+      html += `<td>${val}</td>`;
+    });
+    html += `<td><button class="btn btn-outline btn-sm" onclick="editPlayer('${p.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">✕</button></td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function showPlayerModal(id) {
+  const rules = getRules();
+  const modal = document.getElementById('playerModal');
+  const skillsDiv = document.getElementById('playerSkills');
+  
+  // Build skill rating inputs
+  let skillHtml = '';
+  rules.skillAttributes.forEach(s => {
+    skillHtml += `<div class="skill-item"><label>${s}</label><select data-skill="${s}">`;
+    for (let i = 0; i <= 5; i++) skillHtml += `<option value="${i}">${i === 0 ? '-' : i}</option>`;
+    skillHtml += '</select></div>';
+  });
+  skillsDiv.innerHTML = skillHtml;
+
+  if (id) {
+    const p = getPlayers().find(x => x.id === id);
+    document.getElementById('playerModalTitle').textContent = 'Edit Player';
+    document.getElementById('playerId').value = p.id;
+    document.getElementById('playerFirst').value = p.firstName;
+    document.getElementById('playerLast').value = p.lastName;
+    document.getElementById('playerNumber').value = p.number;
+    document.getElementById('playerCanPitch').checked = p.canPitch;
+    document.getElementById('playerCanCatch').checked = p.canCatch;
+    rules.skillAttributes.forEach(s => {
+      const sel = skillsDiv.querySelector(`[data-skill="${s}"]`);
+      if (sel && p.skills && p.skills[s]) sel.value = p.skills[s];
+    });
+  } else {
+    document.getElementById('playerModalTitle').textContent = 'Add Player';
+    document.getElementById('playerId').value = '';
+    document.getElementById('playerFirst').value = '';
+    document.getElementById('playerLast').value = '';
+    document.getElementById('playerNumber').value = '';
+    document.getElementById('playerCanPitch').checked = false;
+    document.getElementById('playerCanCatch').checked = false;
+  }
+  modal.classList.add('active');
+}
+
+function closePlayerModal() { document.getElementById('playerModal').classList.remove('active'); }
+
+function editPlayer(id) { showPlayerModal(id); }
+
+function savePlayer() {
+  const rules = getRules();
+  const players = getPlayers();
+  const id = document.getElementById('playerId').value || ('p_' + Date.now());
+  const firstName = document.getElementById('playerFirst').value.trim();
+  const lastName = document.getElementById('playerLast').value.trim();
+  const number = parseInt(document.getElementById('playerNumber').value) || 0;
+  if (!firstName || !lastName) { alert('First and last name required.'); return; }
+  
+  const skills = {};
+  rules.skillAttributes.forEach(s => {
+    const sel = document.querySelector(`#playerSkills [data-skill="${s}"]`);
+    if (sel) skills[s] = parseInt(sel.value) || 0;
+  });
+
+  const player = {
+    id, firstName, lastName, number,
+    canPitch: document.getElementById('playerCanPitch').checked,
+    canCatch: document.getElementById('playerCanCatch').checked,
+    skills
+  };
+
+  const idx = players.findIndex(p => p.id === id);
+  if (idx >= 0) players[idx] = player; else players.push(player);
+  savePlayers(players);
+  closePlayerModal();
+  renderRoster();
+}
+
+function deletePlayer(id) {
+  if (!confirm('Remove this player from the roster?')) return;
+  savePlayers(getPlayers().filter(p => p.id !== id));
+  renderRoster();
+}
+
+// ========== SCHEDULE ==========
+function renderSchedule() {
+  const games = getGames();
+  const rules = getRules();
+  const el = document.getElementById('scheduleTable');
+  if (games.length === 0) {
+    el.innerHTML = '<div class="empty-state"><h3>No games scheduled</h3><p>Add games to your season schedule.</p></div>';
+    return;
+  }
+  const sorted = [...games].sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+  let html = '<table><thead><tr><th>#</th><th>Date</th><th>Time</th><th>Opponent</th><th>Location</th><th>Home/Away</th><th>Dugout</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  sorted.forEach((g, i) => {
+    const dugout = g.homeAway === 'home' ? rules.homeDugout : (rules.homeDugout === '3B' ? '1B' : '3B');
+    const dugoutClass = g.homeAway === 'home' ? 'dugout-home' : 'dugout-away';
+    const lineups = getLineups();
+    const status = lineups[g.id] ? 'complete' : 'pending';
+    const dateStr = g.date ? new Date(g.date + 'T00:00').toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}) : '-';
+    const timeStr = g.time ? formatTime(g.time) : '-';
+    html += `<tr>
+      <td>${i+1}</td>
+      <td>${dateStr}</td>
+      <td>${timeStr}</td>
+      <td><strong>${g.opponent}</strong></td>
+      <td>${g.location || '-'}</td>
+      <td>${g.homeAway === 'home' ? 'Home' : 'Away'}</td>
+      <td><span class="dugout-indicator ${dugoutClass}">${dugout} side</span></td>
+      <td><span class="badge badge-${status}">${status === 'complete' ? 'Lineup Set' : 'Pending'}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="editGame('${g.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">✕</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function formatTime(t) {
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = h % 12 || 12;
+  return `${hr}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+
+function showGameModal(id) {
+  const modal = document.getElementById('gameModal');
+  if (id) {
+    const g = getGames().find(x => x.id === id);
+    document.getElementById('gameModalTitle').textContent = 'Edit Game';
+    document.getElementById('gameId').value = g.id;
+    document.getElementById('gameOpponent').value = g.opponent;
+    document.getElementById('gameDate').value = g.date;
+    document.getElementById('gameTime').value = g.time;
+    document.getElementById('gameLocation').value = g.location;
+    document.getElementById('gameHomeAway').value = g.homeAway;
+  } else {
+    document.getElementById('gameModalTitle').textContent = 'Add Game';
+    document.getElementById('gameId').value = '';
+    document.getElementById('gameOpponent').value = '';
+    document.getElementById('gameDate').value = '';
+    document.getElementById('gameTime').value = '';
+    document.getElementById('gameLocation').value = '';
+    document.getElementById('gameHomeAway').value = 'home';
+  }
+  modal.classList.add('active');
+}
+
+function closeGameModal() { document.getElementById('gameModal').classList.remove('active'); }
+function editGame(id) { showGameModal(id); }
+
+function saveGame() {
+  const games = getGames();
+  const id = document.getElementById('gameId').value || ('g_' + Date.now());
+  const opponent = document.getElementById('gameOpponent').value.trim();
+  if (!opponent) { alert('Opponent name required.'); return; }
+  const game = {
+    id, opponent,
+    date: document.getElementById('gameDate').value,
+    time: document.getElementById('gameTime').value,
+    location: document.getElementById('gameLocation').value.trim(),
+    homeAway: document.getElementById('gameHomeAway').value
+  };
+  const idx = games.findIndex(g => g.id === id);
+  if (idx >= 0) games[idx] = game; else games.push(game);
+  saveGames(games);
+  closeGameModal();
+  renderSchedule();
+}
+
+function deleteGame(id) {
+  if (!confirm('Delete this game?')) return;
+  saveGames(getGames().filter(g => g.id !== id));
+  const lineups = getLineups();
+  delete lineups[id];
+  saveLineups(lineups);
+  renderSchedule();
+}
+
+// ========== GAMES PAGE (Lineup Generation) ==========
+let currentGameId = null;
+let currentAbsent = [];
+let currentBattery = {};
+let currentLineup = null;
+
+function renderGamesList() {
+  const games = getGames();
+  const el = document.getElementById('gamesList');
+  const detail = document.getElementById('gameDetail');
+  detail.style.display = 'none';
+  
+  if (games.length === 0) {
+    el.innerHTML = '<div class="card"><div class="empty-state"><h3>No games scheduled</h3><p>Go to the Schedule tab to add games first.</p></div></div>';
+    return;
+  }
+
+  const rules = getRules();
+  const lineups = getLineups();
+  const sorted = [...games].sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+  
+  let html = '<div class="card"><h2>Select a Game</h2>';
+  sorted.forEach(g => {
+    const dugout = g.homeAway === 'home' ? rules.homeDugout : (rules.homeDugout === '3B' ? '1B' : '3B');
+    const status = lineups[g.id] ? 'complete' : 'pending';
+    const dateStr = g.date ? new Date(g.date + 'T00:00').toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}) : '';
+    const timeStr = g.time ? formatTime(g.time) : '';
+    html += `<div class="game-card" onclick="openGame('${g.id}')">
+      <div class="game-header">
+        <h3>vs ${g.opponent}</h3>
+        <span class="badge badge-${status}">${status === 'complete' ? 'Lineup Set' : 'Pending'}</span>
+      </div>
+      <div class="game-details">
+        <span>📅 ${dateStr}</span>
+        <span>⏰ ${timeStr}</span>
+        <span>📍 ${g.location || 'TBD'}</span>
+        <span class="dugout-indicator ${g.homeAway === 'home' ? 'dugout-home' : 'dugout-away'}">${g.homeAway === 'home' ? '🏠 Home' : '🚗 Away'} — ${dugout} dugout</span>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function openGame(gameId) {
+  currentGameId = gameId;
+  const game = getGames().find(g => g.id === gameId);
+  const rules = getRules();
+  const players = getPlayers();
+  const lineups = getLineups();
+  const existingLineup = lineups[gameId];
+
+  currentAbsent = existingLineup ? (existingLineup.absent || []) : [];
+  currentBattery = existingLineup ? (existingLineup.battery || {}) : {};
+  currentLineup = existingLineup ? existingLineup.assignments : null;
+
+  document.getElementById('gamesList').innerHTML = '';
+  const detail = document.getElementById('gameDetail');
+  detail.style.display = 'block';
+
+  const dugout = game.homeAway === 'home' ? rules.homeDugout : (rules.homeDugout === '3B' ? '1B' : '3B');
+  const dateStr = game.date ? new Date(game.date + 'T00:00').toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'}) : '';
+  const timeStr = game.time ? formatTime(game.time) : '';
+
+  let html = `
+    <div class="card">
+      <button class="btn btn-outline btn-sm no-print" onclick="renderGamesList()" style="margin-bottom:12px;">← Back to Games</button>
+      <h2>vs ${game.opponent}</h2>
+      <div class="game-details" style="margin-bottom:16px;">
+        <span>📅 ${dateStr}</span>
+        <span>⏰ ${timeStr}</span>
+        <span>📍 ${game.location || 'TBD'}</span>
+        <span class="dugout-indicator ${game.homeAway === 'home' ? 'dugout-home' : 'dugout-away'}">${game.homeAway === 'home' ? '🏠 Home' : '🚗 Away'} — ${dugout} dugout</span>
+      </div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Step 1: Mark Absences</h2>
+      <p style="color:var(--text-light);margin-bottom:12px;">Uncheck any players who will be absent.</p>
+      <div id="absenceList"></div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Step 2: Battery Plan</h2>
+      <p style="color:var(--text-light);margin-bottom:12px;">Assign pitcher and catcher for each inning.</p>
+      <div id="batteryPlan"></div>
+    </div>
+
+    <div class="card no-print">
+      <div class="btn-group">
+        <button class="btn btn-accent" onclick="generateLineup()" style="font-size:1.1rem;padding:12px 32px;">⚡ Generate Lineup</button>
+        <button class="btn btn-outline" onclick="clearLineup()">Clear Lineup</button>
+      </div>
+    </div>
+
+    <div id="lineupWarnings"></div>
+    <div id="lineupOutput"></div>
+  `;
+  detail.innerHTML = html;
+  renderAbsenceList();
+  renderBatteryPlan();
+  if (currentLineup) renderLineupOutput();
+}
+
+function renderAbsenceList() {
+  const players = getPlayers().sort((a,b) => a.number - b.number);
+  const el = document.getElementById('absenceList');
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">';
+  players.forEach(p => {
+    const absent = currentAbsent.includes(p.id);
+    html += `<div class="toggle-row">
+      <input type="checkbox" id="abs_${p.id}" ${absent ? '' : 'checked'} onchange="toggleAbsence('${p.id}')">
+      <label for="abs_${p.id}">#${p.number} ${p.firstName} ${p.lastName}</label>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function toggleAbsence(playerId) {
+  if (currentAbsent.includes(playerId)) {
+    currentAbsent = currentAbsent.filter(id => id !== playerId);
+  } else {
+    currentAbsent.push(playerId);
+  }
+}
+
+function renderBatteryPlan() {
+  const rules = getRules();
+  const players = getPlayers().sort((a,b) => a.number - b.number);
+  const pitchers = players.filter(p => p.canPitch && !currentAbsent.includes(p.id));
+  const catchers = players.filter(p => p.canCatch && !currentAbsent.includes(p.id));
+  const el = document.getElementById('batteryPlan');
+
+  let html = '<div class="battery-grid"><label></label>';
+  for (let i = 1; i <= rules.innings; i++) html += `<label style="text-align:center;font-weight:700;">Inn ${i}</label>`;
+  
+  html += '<label>Pitcher</label>';
+  for (let i = 1; i <= rules.innings; i++) {
+    const val = (currentBattery['P'] && currentBattery['P'][i]) || '';
+    html += `<select onchange="setBattery('P',${i},this.value)"><option value="">—</option>`;
+    pitchers.forEach(p => { html += `<option value="${p.id}" ${val === p.id ? 'selected' : ''}>#${p.number} ${p.firstName}</option>`; });
+    html += '</select>';
+  }
+
+  html += '<label>Catcher</label>';
+  for (let i = 1; i <= rules.innings; i++) {
+    const val = (currentBattery['C'] && currentBattery['C'][i]) || '';
+    html += `<select onchange="setBattery('C',${i},this.value)"><option value="">—</option>`;
+    catchers.forEach(p => { html += `<option value="${p.id}" ${val === p.id ? 'selected' : ''}>#${p.number} ${p.firstName}</option>`; });
+    html += '</select>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function setBattery(pos, inning, playerId) {
+  if (!currentBattery[pos]) currentBattery[pos] = {};
+  currentBattery[pos][inning] = playerId || null;
+}
+
+// ========== LINEUP GENERATION ENGINE ==========
+function generateLineup() {
+  const rules = getRules();
+  const allPlayers = getPlayers();
+  const available = allPlayers.filter(p => !currentAbsent.includes(p.id));
+  
+  if (available.length < rules.fielders) {
+    alert(`Need at least ${rules.fielders} available players. Only ${available.length} present.`);
+    return;
+  }
+
+  const innings = rules.innings;
+  const fieldersCount = rules.fielders;
+  const benchCount = available.length - fieldersCount;
+  const minInfield = rules.minInfield;
+  
+  // assignments[inning] = { position: playerId } or { BENCH: [playerIds] }
+  const assignments = {};
+  for (let i = 1; i <= innings; i++) assignments[i] = {};
+
+  // Track per-player stats for this game
+  const playerStats = {};
+  available.forEach(p => {
+    playerStats[p.id] = { infieldInnings: 0, benchCount: 0, positions: [] };
+  });
+
+  // Lock in battery assignments first
+  for (let inn = 1; inn <= innings; inn++) {
+    const pitcher = currentBattery['P'] && currentBattery['P'][inn];
+    const catcher = currentBattery['C'] && currentBattery['C'][inn];
+    if (pitcher) { assignments[inn]['P'] = pitcher; playerStats[pitcher].positions.push('P'); }
+    if (catcher) { assignments[inn]['C'] = catcher; playerStats[catcher].positions.push('C'); }
+  }
+
+  // Build position suitability scores per player
+  const posScores = {};
+  available.forEach(p => {
+    posScores[p.id] = {};
+    POSITIONS.forEach(pos => {
+      posScores[p.id][pos] = calcPositionScore(p, pos, rules);
+    });
+  });
+
+  // Greedy assignment: fill inning by inning
+  for (let inn = 1; inn <= innings; inn++) {
+    const assigned = new Set(Object.values(assignments[inn]));
+    const remaining = POSITIONS.filter(pos => !assignments[inn][pos]);
+    const unassigned = available.filter(p => !assigned.has(p.id));
+
+    // Sort remaining positions by difficulty (fewer good candidates = fill first)
+    remaining.sort((a, b) => {
+      const aCount = unassigned.filter(p => posScores[p.id][a] >= 3).length;
+      const bCount = unassigned.filter(p => posScores[p.id][b] >= 3).length;
+      return aCount - bCount;
+    });
+
+    const innAssigned = new Set(assigned);
+    remaining.forEach(pos => {
+      const candidates = available.filter(p => !innAssigned.has(p.id));
+      if (candidates.length === 0) return;
+
+      // Score candidates considering: position fit, infield need, bench fairness
+      candidates.sort((a, b) => {
+        let scoreA = posScores[a.id][pos];
+        let scoreB = posScores[b.id][pos];
+        
+        // Boost players who need infield innings
+        if (INFIELD.includes(pos)) {
+          if (playerStats[a.id].infieldInnings < minInfield) scoreA += 2;
+          if (playerStats[b.id].infieldInnings < minInfield) scoreB += 2;
+        }
+        
+        // Penalize players who've been benched less (bench fairness — share the bench)
+        // Players who've been benched fewer times should NOT get priority for fielding
+        // unless they need infield innings
+        
+        return scoreB - scoreA;
+      });
+
+      const pick = candidates[0];
+      assignments[inn][pos] = pick.id;
+      innAssigned.add(pick.id);
+      if (INFIELD.includes(pos)) playerStats[pick.id].infieldInnings++;
+      playerStats[pick.id].positions.push(pos);
+    });
+
+    // Remaining players go to bench
+    const benchPlayers = available.filter(p => !innAssigned.has(p.id)).map(p => p.id);
+    assignments[inn]['BENCH'] = benchPlayers;
+    benchPlayers.forEach(id => {
+      playerStats[id].benchCount++;
+      playerStats[id].positions.push('BENCH');
+    });
+  }
+
+  // Post-process: try swaps to meet infield minimums
+  for (let pass = 0; pass < 3; pass++) {
+    available.forEach(player => {
+      if (playerStats[player.id].infieldInnings >= minInfield) return;
+      const needed = minInfield - playerStats[player.id].infieldInnings;
+      
+      for (let inn = 1; inn <= innings && playerStats[player.id].infieldInnings < minInfield; inn++) {
+        const currentPos = Object.entries(assignments[inn]).find(([pos, pid]) => pid === player.id);
+        if (!currentPos) continue;
+        const [myPos] = currentPos;
+        if (INFIELD.includes(myPos)) continue; // already infield this inning
+        if (myPos === 'P' || myPos === 'C') continue; // don't move battery
+        
+        // Try to swap with an infielder who has surplus infield innings
+        for (const ifPos of INFIELD) {
+          const occupant = assignments[inn][ifPos];
+          if (!occupant) continue;
+          // Check battery lock
+          if ((currentBattery['P'] && currentBattery['P'][inn] === occupant) ||
+              (currentBattery['C'] && currentBattery['C'][inn] === occupant)) continue;
+          
+          if (playerStats[occupant].infieldInnings > minInfield) {
+            // Swap
+            assignments[inn][ifPos] = player.id;
+            assignments[inn][myPos] = occupant;
+            playerStats[player.id].infieldInnings++;
+            playerStats[occupant].infieldInnings--;
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  // Post-process: bench fairness — no one benched twice before everyone benched once
+  for (let pass = 0; pass < 3; pass++) {
+    const maxBench = Math.max(...available.map(p => playerStats[p.id].benchCount));
+    const minBench = Math.min(...available.map(p => playerStats[p.id].benchCount));
+    if (maxBench - minBench <= 1) break;
+
+    for (let inn = 1; inn <= innings; inn++) {
+      const benchIds = assignments[inn]['BENCH'] || [];
+      const overBenched = benchIds.filter(id => playerStats[id].benchCount > minBench + 1);
+      
+      overBenched.forEach(obId => {
+        // Try to swap with a fielder who has fewer bench stints
+        const fieldPositions = POSITIONS.filter(pos => {
+          const pid = assignments[inn][pos];
+          return pid && playerStats[pid].benchCount < playerStats[obId].benchCount &&
+            pos !== 'P' && pos !== 'C' &&
+            !((currentBattery['P'] && currentBattery['P'][inn] === pid) ||
+              (currentBattery['C'] && currentBattery['C'][inn] === pid));
+        });
+        
+        if (fieldPositions.length > 0) {
+          // Pick the fielder with fewest bench stints
+          fieldPositions.sort((a, b) => playerStats[assignments[inn][a]].benchCount - playerStats[assignments[inn][b]].benchCount);
+          const swapPos = fieldPositions[0];
+          const swapId = assignments[inn][swapPos];
+          
+          // Swap
+          assignments[inn][swapPos] = obId;
+          const benchIdx = assignments[inn]['BENCH'].indexOf(obId);
+          assignments[inn]['BENCH'][benchIdx] = swapId;
+          
+          // Update stats
+          playerStats[obId].benchCount--;
+          playerStats[swapId].benchCount++;
+          if (INFIELD.includes(swapPos)) {
+            playerStats[obId].infieldInnings++;
+            playerStats[swapId].infieldInnings--;
+          }
+        }
+      });
+    }
+  }
+
+  currentLineup = assignments;
+  
+  // Save
+  const lineups = getLineups();
+  lineups[currentGameId] = {
+    assignments: currentLineup,
+    absent: [...currentAbsent],
+    battery: JSON.parse(JSON.stringify(currentBattery)),
+    generatedAt: new Date().toISOString()
+  };
+  saveLineups(lineups);
+  
+  renderLineupOutput();
+}
+
+function calcPositionScore(player, pos, rules) {
+  const s = player.skills || {};
+  const get = (attr) => s[attr] || 1;
+  
+  switch(pos) {
+    case 'P': return player.canPitch ? 5 : 0;
+    case 'C': return player.canCatch ? 5 : 0;
+    case 'SS': return (get('Fielding Ability') + get('Arm Accuracy') + get('Arm Strength') + get('Agility') + get('Baseball IQ')) / 5 * 1.2;
+    case '2B': return (get('Fielding Ability') + get('Agility') + get('Infield Catching Ability') + get('Baseball IQ')) / 4;
+    case '1B': return (get('Infield Catching Ability') + get('Fielding Ability')) / 2 * 1.1;
+    case '3B': return (get('Fielding Ability') + get('Arm Strength') + get('Arm Accuracy') + get('Infield Catching Ability')) / 4;
+    case 'LF': return (get('Outfield Ability') + get('Fielding Ability') + get('Arm Strength')) / 3;
+    case 'CF': return (get('Outfield Ability') + get('Agility') + get('Fielding Ability') + get('Baseball IQ')) / 4 * 1.1;
+    case 'RF': return (get('Outfield Ability') + get('Arm Strength') + get('Fielding Ability')) / 3;
+    default: return 1;
+  }
+}
+
+function clearLineup() {
+  currentLineup = null;
+  const lineups = getLineups();
+  delete lineups[currentGameId];
+  saveLineups(lineups);
+  document.getElementById('lineupOutput').innerHTML = '';
+  document.getElementById('lineupWarnings').innerHTML = '';
+}
+
+// ========== LINEUP OUTPUT (Grid + Diamond) ==========
+function renderLineupOutput() {
+  if (!currentLineup) return;
+  const rules = getRules();
+  const allPlayers = getPlayers();
+  const available = allPlayers.filter(p => !currentAbsent.includes(p.id));
+  const playerMap = {};
+  allPlayers.forEach(p => { playerMap[p.id] = p; });
+
+  // Validate and show warnings
+  renderWarnings(available, playerMap, rules);
+
+  let html = '<div class="card"><h2>Generated Lineup</h2>';
+  
+  // Grid view
+  html += '<div class="lineup-grid"><table><thead><tr><th>Player</th>';
+  for (let i = 1; i <= rules.innings; i++) html += `<th>Inn ${i}</th>`;
+  html += '<th>IF Inn</th><th>Bench</th></tr></thead><tbody>';
+
+  available.sort((a,b) => a.number - b.number).forEach(p => {
+    let ifCount = 0, benchCount = 0;
+    html += `<tr><td>#${p.number} ${p.firstName} ${p.lastName}</td>`;
+    for (let inn = 1; inn <= rules.innings; inn++) {
+      const pos = Object.entries(currentLineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
+      const isBench = (currentLineup[inn]['BENCH'] || []).includes(p.id);
+      if (pos) {
+        const [position] = pos;
+        const isInfield = INFIELD.includes(position);
+        if (isInfield) ifCount++;
+        html += `<td style="${isInfield ? 'background:#ebf5fb;' : ''}">${position}</td>`;
+      } else if (isBench) {
+        benchCount++;
+        html += '<td class="bench-cell">BN</td>';
+      } else {
+        html += '<td>-</td>';
+      }
+    }
+    const ifStyle = ifCount < rules.minInfield ? 'color:var(--danger);font-weight:700;' : 'color:var(--accent);';
+    html += `<td style="${ifStyle}">${ifCount}</td>`;
+    html += `<td>${benchCount}</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Diamond views per inning
+  html += '<div style="margin-top:24px;"><h3>Field View</h3>';
+  html += '<div class="inning-tabs" id="inningTabs">';
+  for (let i = 1; i <= rules.innings; i++) {
+    html += `<div class="inning-tab ${i===1?'active':''}" onclick="showInning(${i})">${i}</div>`;
+  }
+  html += '</div>';
+  
+  for (let inn = 1; inn <= rules.innings; inn++) {
+    html += `<div class="inning-view" id="inningView_${inn}" style="${inn===1?'':'display:none;'}">`;
+    html += '<div class="diamond-container">';
+    POSITIONS.forEach(pos => {
+      const pid = currentLineup[inn][pos];
+      const player = pid ? playerMap[pid] : null;
+      const name = player ? `#${player.number} ${player.firstName}` : '—';
+      html += `<div class="diamond-pos pos-${pos}"><span class="pos-label">${pos}</span><span class="pos-player">${name}</span></div>`;
+    });
+    html += '</div>';
+    
+    const bench = currentLineup[inn]['BENCH'] || [];
+    if (bench.length > 0) {
+      html += '<div style="text-align:center;"><strong>Bench:</strong> <div class="bench-list" style="justify-content:center;">';
+      bench.forEach(pid => {
+        const p = playerMap[pid];
+        if (p) html += `<span class="bench-player">#${p.number} ${p.firstName}</span>`;
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+
+  document.getElementById('lineupOutput').innerHTML = html;
+}
+
+function showInning(inn) {
+  document.querySelectorAll('.inning-tab').forEach((t, i) => t.classList.toggle('active', i + 1 === inn));
+  document.querySelectorAll('.inning-view').forEach(v => v.style.display = 'none');
+  const view = document.getElementById('inningView_' + inn);
+  if (view) view.style.display = '';
+}
+
+function renderWarnings(available, playerMap, rules) {
+  const el = document.getElementById('lineupWarnings');
+  let html = '';
+  const errors = [];
+  const warnings = [];
+
+  // Check infield minimums
+  available.forEach(p => {
+    let ifCount = 0;
+    for (let inn = 1; inn <= rules.innings; inn++) {
+      const pos = Object.entries(currentLineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
+      if (pos && INFIELD.includes(pos[0])) ifCount++;
+    }
+    if (ifCount < rules.minInfield) {
+      errors.push(`#${p.number} ${p.firstName} ${p.lastName} has only ${ifCount} infield inning(s) (min: ${rules.minInfield})`);
+    }
+  });
+
+  // Check bench fairness
+  const benchCounts = available.map(p => {
+    let bc = 0;
+    for (let inn = 1; inn <= rules.innings; inn++) {
+      if ((currentLineup[inn]['BENCH'] || []).includes(p.id)) bc++;
+    }
+    return { player: p, count: bc };
+  });
+  const maxB = Math.max(...benchCounts.map(x => x.count));
+  const minB = Math.min(...benchCounts.map(x => x.count));
+  if (maxB - minB > 1) {
+    const over = benchCounts.filter(x => x.count > minB + 1);
+    over.forEach(x => {
+      errors.push(`#${x.player.number} ${x.player.firstName} benched ${x.count} times (others as few as ${minB})`);
+    });
+  }
+
+  // Pitcher/catcher advisory warnings
+  if (currentBattery['C']) {
+    const catcherInnings = {};
+    Object.values(currentBattery['C']).forEach(pid => {
+      if (pid) catcherInnings[pid] = (catcherInnings[pid] || 0) + 1;
+    });
+    Object.entries(catcherInnings).forEach(([pid, count]) => {
+      if (count >= rules.catcherInningsLimit) {
+        const p = playerMap[pid];
+        // Check if they're also pitching
+        if (currentBattery['P'] && Object.values(currentBattery['P']).includes(pid)) {
+          warnings.push(`⚠️ #${p.number} ${p.firstName} catches ${count} innings — cannot pitch (rule: ${rules.catcherInningsLimit}+ innings catching)`);
+        }
+      }
+    });
+  }
+
+  if (errors.length > 0) {
+    html += '<div class="error-box"><div class="error-title">Rule Violations</div>';
+    errors.forEach(e => { html += `<div>❌ ${e}</div>`; });
+    html += '</div>';
+  }
+  if (warnings.length > 0) {
+    html += '<div class="warning-box"><div class="warning-title">Advisory Warnings</div>';
+    warnings.forEach(w => { html += `<div>${w}</div>`; });
+    html += '</div>';
+  }
+  if (errors.length === 0 && warnings.length === 0) {
+    html += '<div class="success-box">✅ Lineup passes all rules. No warnings.</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ========== SEASON STATS ==========
+function renderSeasonStats() {
+  const players = getPlayers();
+  const games = getGames();
+  const lineups = getLineups();
+  const rules = getRules();
+  const el = document.getElementById('seasonStats');
+
+  if (players.length === 0) {
+    el.innerHTML = '<div class="empty-state"><h3>No players</h3><p>Add players to your roster first.</p></div>';
+    return;
+  }
+
+  const completedGames = games.filter(g => lineups[g.id]);
+  
+  // Accumulate stats
+  const stats = {};
+  players.forEach(p => {
+    stats[p.id] = { gamesPlayed: 0, infieldInnings: 0, benchInnings: 0, positionCounts: {}, pitchingGames: 0 };
+    POSITIONS.forEach(pos => { stats[p.id].positionCounts[pos] = 0; });
+  });
+
+  completedGames.forEach(g => {
+    const lineup = lineups[g.id].assignments;
+    const absent = lineups[g.id].absent || [];
+    
+    players.forEach(p => {
+      if (absent.includes(p.id)) return;
+      stats[p.id].gamesPlayed++;
+      let pitched = false;
+      
+      for (let inn = 1; inn <= rules.innings; inn++) {
+        if (!lineup[inn]) continue;
+        const entry = Object.entries(lineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
+        if (entry) {
+          const [pos] = entry;
+          stats[p.id].positionCounts[pos] = (stats[p.id].positionCounts[pos] || 0) + 1;
+          if (INFIELD.includes(pos)) stats[p.id].infieldInnings++;
+          if (pos === 'P') pitched = true;
+        }
+        if ((lineup[inn]['BENCH'] || []).includes(p.id)) stats[p.id].benchInnings++;
+      }
+      if (pitched) stats[p.id].pitchingGames++;
+    });
+  });
+
+  let html = `<p style="margin-bottom:12px;">${completedGames.length} of ${games.length} games with lineups</p>`;
+  html += '<table><thead><tr><th>#</th><th>Name</th><th>GP</th>';
+  POSITIONS.forEach(pos => { html += `<th>${pos}</th>`; });
+  html += '<th>IF</th><th>BN</th><th>Pitched</th><th>Pitch Req</th></tr></thead><tbody>';
+
+  players.sort((a,b) => a.number - b.number).forEach(p => {
+    const s = stats[p.id];
+    const pitchMet = s.pitchingGames >= 1;
+    html += `<tr>
+      <td>${p.number}</td>
+      <td>${p.firstName} ${p.lastName}</td>
+      <td>${s.gamesPlayed}</td>`;
+    POSITIONS.forEach(pos => { html += `<td>${s.positionCounts[pos] || 0}</td>`; });
+    html += `<td>${s.infieldInnings}</td>
+      <td>${s.benchInnings}</td>
+      <td>${s.pitchingGames}</td>
+      <td class="${pitchMet ? 'stat-met' : 'stat-unmet'}">${pitchMet ? '✅' : '❌'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ========== RULES PAGE ==========
+function renderRulesPage() {
+  const rules = getRules();
+  
+  // Set form values
+  document.getElementById('rule-innings').value = rules.innings;
+  document.getElementById('rule-rosterSize').value = rules.rosterSize;
+  document.getElementById('rule-fielders').value = rules.fielders;
+  document.getElementById('rule-minInfield').value = rules.minInfield;
+  document.getElementById('rule-minPitchBatters').value = rules.minPitchBatters;
+  document.getElementById('rule-homeDugout').value = rules.homeDugout;
+  document.getElementById('rule-catcherInningsLimit').value = rules.catcherInningsLimit;
+  document.getElementById('rule-pitcherPitchLimit').value = rules.pitcherPitchLimit;
+  document.getElementById('rule-pitcherReturnLimit').value = rules.pitcherReturnLimit;
+
+  // Skill attributes
+  const attrEl = document.getElementById('skillAttrList');
+  let attrHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+  rules.skillAttributes.forEach((attr, i) => {
+    attrHtml += `<div style="display:flex;align-items:center;gap:4px;background:#f8f9fa;padding:4px 8px;border-radius:4px;font-size:0.85rem;">
+      ${attr} <button class="btn btn-danger btn-sm" style="padding:1px 6px;font-size:0.7rem;" onclick="removeSkillAttribute(${i})">✕</button>
+    </div>`;
+  });
+  attrHtml += '</div>';
+  attrEl.innerHTML = attrHtml;
+
+  // Strategies
+  const stratEl = document.getElementById('strategyList');
+  let stratHtml = '';
+  rules.strategies.forEach((s, i) => {
+    stratHtml += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+      <span style="flex:1;">${s}</span>
+      <button class="btn btn-danger btn-sm" style="padding:1px 6px;font-size:0.7rem;" onclick="removeStrategy(${i})">✕</button>
+    </div>`;
+  });
+  stratEl.innerHTML = stratHtml;
+}
+
+function saveRules() {
+  const rules = getRules();
+  rules.innings = parseInt(document.getElementById('rule-innings').value);
+  rules.rosterSize = parseInt(document.getElementById('rule-rosterSize').value);
+  rules.fielders = parseInt(document.getElementById('rule-fielders').value);
+  rules.minInfield = parseInt(document.getElementById('rule-minInfield').value);
+  rules.minPitchBatters = parseInt(document.getElementById('rule-minPitchBatters').value);
+  rules.homeDugout = document.getElementById('rule-homeDugout').value;
+  rules.catcherInningsLimit = parseInt(document.getElementById('rule-catcherInningsLimit').value);
+  rules.pitcherPitchLimit = parseInt(document.getElementById('rule-pitcherPitchLimit').value);
+  rules.pitcherReturnLimit = parseInt(document.getElementById('rule-pitcherReturnLimit').value);
+  saveRulesData(rules);
+}
+
+function addSkillAttribute() {
+  const input = document.getElementById('newSkillAttr');
+  const name = input.value.trim();
+  if (!name) return;
+  const rules = getRules();
+  if (rules.skillAttributes.includes(name)) { alert('Attribute already exists.'); return; }
+  rules.skillAttributes.push(name);
+  saveRulesData(rules);
+  input.value = '';
+  renderRulesPage();
+}
+
+function removeSkillAttribute(i) {
+  const rules = getRules();
+  if (!confirm(`Remove "${rules.skillAttributes[i]}"?`)) return;
+  rules.skillAttributes.splice(i, 1);
+  saveRulesData(rules);
+  renderRulesPage();
+}
+
+function addStrategy() {
+  const input = document.getElementById('newStrategy');
+  const text = input.value.trim();
+  if (!text) return;
+  const rules = getRules();
+  rules.strategies.push(text);
+  saveRulesData(rules);
+  input.value = '';
+  renderRulesPage();
+}
+
+function removeStrategy(i) {
+  const rules = getRules();
+  rules.strategies.splice(i, 1);
+  saveRulesData(rules);
+  renderRulesPage();
+}
+
+// ========== SEED DATA ==========
+function loadSeedData() {
+  if (getPlayers().length > 0 && !confirm('This will replace your current roster. Continue?')) return;
+  
+  const players = [
+    { id:'p1', firstName:'Jake', lastName:'Miller', number:1, canPitch:true, canCatch:false, skills:{'Fielding Ability':4,'Outfield Ability':3,'Infield Catching Ability':4,'Arm Accuracy':4,'Arm Strength':4,'Baseball IQ':5,'Coachability':5,'Attitude':5,'Impact on Teammates':5,'Agility':4} },
+    { id:'p2', firstName:'Ryan', lastName:'Chen', number:3, canPitch:true, canCatch:true, skills:{'Fielding Ability':5,'Outfield Ability':3,'Infield Catching Ability':5,'Arm Accuracy':5,'Arm Strength':5,'Baseball IQ':5,'Coachability':4,'Attitude':4,'Impact on Teammates':4,'Agility':4} },
+    { id:'p3', firstName:'Marcus', lastName:'Johnson', number:5, canPitch:false, canCatch:true, skills:{'Fielding Ability':4,'Outfield Ability':2,'Infield Catching Ability':5,'Arm Accuracy':4,'Arm Strength':4,'Baseball IQ':4,'Coachability':5,'Attitude':5,'Impact on Teammates':4,'Agility':3} },
+    { id:'p4', firstName:'Ethan', lastName:'Williams', number:7, canPitch:true, canCatch:false, skills:{'Fielding Ability':3,'Outfield Ability':4,'Infield Catching Ability':3,'Arm Accuracy':4,'Arm Strength':5,'Baseball IQ':3,'Coachability':3,'Attitude':4,'Impact on Teammates':3,'Agility':4} },
+    { id:'p5', firstName:'Diego', lastName:'Martinez', number:9, canPitch:false, canCatch:false, skills:{'Fielding Ability':4,'Outfield Ability':4,'Infield Catching Ability':3,'Arm Accuracy':3,'Arm Strength':3,'Baseball IQ':4,'Coachability':4,'Attitude':5,'Impact on Teammates':5,'Agility':5} },
+    { id:'p6', firstName:'Noah', lastName:'Taylor', number:11, canPitch:true, canCatch:false, skills:{'Fielding Ability':3,'Outfield Ability':3,'Infield Catching Ability':2,'Arm Accuracy':3,'Arm Strength':3,'Baseball IQ':3,'Coachability':4,'Attitude':4,'Impact on Teammates':4,'Agility':3} },
+    { id:'p7', firstName:'Liam', lastName:'Anderson', number:13, canPitch:false, canCatch:false, skills:{'Fielding Ability':2,'Outfield Ability':3,'Infield Catching Ability':2,'Arm Accuracy':2,'Arm Strength':2,'Baseball IQ':3,'Coachability':5,'Attitude':5,'Impact on Teammates':5,'Agility':3} },
+    { id:'p8', firstName:'Owen', lastName:'Thomas', number:15, canPitch:false, canCatch:false, skills:{'Fielding Ability':3,'Outfield Ability':4,'Infield Catching Ability':2,'Arm Accuracy':3,'Arm Strength':4,'Baseball IQ':3,'Coachability':3,'Attitude':3,'Impact on Teammates':3,'Agility':4} },
+    { id:'p9', firstName:'Caleb', lastName:'Jackson', number:17, canPitch:true, canCatch:false, skills:{'Fielding Ability':4,'Outfield Ability':3,'Infield Catching Ability':4,'Arm Accuracy':4,'Arm Strength':3,'Baseball IQ':4,'Coachability':4,'Attitude':4,'Impact on Teammates':4,'Agility':3} },
+    { id:'p10', firstName:'Aiden', lastName:'White', number:19, canPitch:false, canCatch:true, skills:{'Fielding Ability':3,'Outfield Ability':2,'Infield Catching Ability':4,'Arm Accuracy':3,'Arm Strength':3,'Baseball IQ':3,'Coachability':4,'Attitude':5,'Impact on Teammates':4,'Agility':2} },
+    { id:'p11', firstName:'Lucas', lastName:'Harris', number:21, canPitch:false, canCatch:false, skills:{'Fielding Ability':2,'Outfield Ability':2,'Infield Catching Ability':2,'Arm Accuracy':2,'Arm Strength':2,'Baseball IQ':2,'Coachability':4,'Attitude':5,'Impact on Teammates':4,'Agility':3} },
+    { id:'p12', firstName:'Mason', lastName:'Clark', number:23, canPitch:false, canCatch:false, skills:{'Fielding Ability':3,'Outfield Ability':3,'Infield Catching Ability':3,'Arm Accuracy':3,'Arm Strength':3,'Baseball IQ':3,'Coachability':3,'Attitude':3,'Impact on Teammates':3,'Agility':3} }
+  ];
+  savePlayers(players);
+
+  const games = [
+    { id:'g1', opponent:'Eagles', date:'2026-04-05', time:'10:00', location:'Lincoln Park Field 1', homeAway:'home' },
+    { id:'g2', opponent:'Hawks', date:'2026-04-12', time:'13:00', location:'Riverside Diamond', homeAway:'away' },
+    { id:'g3', opponent:'Tigers', date:'2026-04-19', time:'10:00', location:'Lincoln Park Field 1', homeAway:'home' },
+    { id:'g4', opponent:'Bears', date:'2026-04-26', time:'14:00', location:'Oakwood Field', homeAway:'away' },
+    { id:'g5', opponent:'Wolves', date:'2026-05-03', time:'11:00', location:'Lincoln Park Field 2', homeAway:'home' }
+  ];
+  saveGames(games);
+
+  renderRoster();
+  alert('Sample data loaded: 12 players and 5 games.');
+}
+
+// ========== INIT ==========
+renderRoster();
+</script>
+</body>
+</html>
