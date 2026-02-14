@@ -1606,31 +1606,31 @@ function openPrintView() {
     </div>`;
 
   // Build grid page
-  let gridHtml = `<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
-    <thead><tr><th style="text-align:left;border-bottom:2px solid #333;padding:4px 6px;">Player</th>`;
-  for (let i = 1; i <= rules.innings; i++) gridHtml += `<th style="text-align:center;border:2px solid #333;padding:4px 6px;background:#e8f0fe;">Inn ${i}</th>`;
-  gridHtml += `<th style="text-align:center;border-bottom:2px solid #333;padding:4px 6px;">IF</th>
-    <th style="text-align:center;border-bottom:2px solid #333;padding:4px 6px;">BN</th></tr></thead><tbody>`;
+  let gridHtml = `<table style="width:100%;border-collapse:collapse;font-size:1rem;color:#000;">
+    <thead><tr><th style="text-align:left;border-bottom:2px solid #333;padding:6px 8px;font-size:1rem;">Player</th>`;
+  for (let i = 1; i <= rules.innings; i++) gridHtml += `<th style="text-align:center;border:2px solid #333;padding:6px 8px;background:#e8f0fe;font-size:1rem;">Inn ${i}</th>`;
+  gridHtml += `<th style="text-align:center;border-bottom:2px solid #333;padding:6px 8px;font-size:1rem;">IF</th>
+    <th style="text-align:center;border-bottom:2px solid #333;padding:6px 8px;font-size:1rem;">BN</th></tr></thead><tbody>`;
 
   available.sort((a,b) => a.number - b.number).forEach(p => {
     let ifCount = 0, benchCount = 0;
-    gridHtml += `<tr><td style="border-bottom:1px solid #ddd;padding:4px 6px;font-weight:600;">#${p.number} ${p.firstName} ${p.lastName}</td>`;
+    gridHtml += `<tr><td style="border-bottom:1px solid #999;padding:6px 8px;font-weight:700;font-size:0.95rem;">#${p.number} ${p.firstName} ${p.lastName}</td>`;
     for (let inn = 1; inn <= rules.innings; inn++) {
       const pos = Object.entries(currentLineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
       const isBench = (currentLineup[inn]['BENCH'] || []).includes(p.id);
       if (pos) {
         const [position] = pos;
         if (INFIELD.includes(position)) ifCount++;
-        gridHtml += `<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #ddd;padding:4px 6px;${INFIELD.includes(position)?'background:#e8f4fd;':''}">${position}</td>`;
+        gridHtml += `<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:6px 8px;font-weight:600;font-size:0.95rem;${INFIELD.includes(position)?'background:#e8f4fd;':''}">${position}</td>`;
       } else if (isBench) {
         benchCount++;
-        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #ddd;padding:4px 6px;background:#fef9e7;">BN</td>';
+        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:6px 8px;font-weight:600;font-size:0.95rem;background:#fef9e7;">BN</td>';
       } else {
-        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #ddd;padding:4px 6px;">-</td>';
+        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:6px 8px;font-size:0.95rem;">-</td>';
       }
     }
-    gridHtml += `<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;font-weight:600;">${ifCount}</td>`;
-    gridHtml += `<td style="text-align:center;border-bottom:1px solid #ddd;padding:4px 6px;">${benchCount}</td></tr>`;
+    gridHtml += `<td style="text-align:center;border-bottom:1px solid #999;padding:6px 8px;font-weight:700;font-size:0.95rem;">${ifCount}</td>`;
+    gridHtml += `<td style="text-align:center;border-bottom:1px solid #999;padding:6px 8px;font-weight:600;font-size:0.95rem;">${benchCount}</td></tr>`;
   });
   // Close the box on the bottom of inning columns
   gridHtml += `<tr><td style="border:none;"></td>`;
