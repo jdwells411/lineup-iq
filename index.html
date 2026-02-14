@@ -213,6 +213,9 @@
     <div class="btn-group no-print" style="margin-bottom:16px;">
       <button class="btn btn-primary" onclick="showPlayerModal()">+ Add Player</button>
       <button class="btn btn-outline" onclick="loadSeedData()">Load Sample Data</button>
+      <button class="btn btn-warning" onclick="exportData()">⬇ Download Backup</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">⬆ Restore from File</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
     </div>
     <div id="rosterTable"></div>
   </div>
@@ -1331,6 +1334,47 @@ function loadSeedData() {
 
   renderRoster();
   alert('Sample data loaded: 12 players and 5 games.');
+}
+
+// ========== EXPORT / IMPORT ==========
+function exportData() {
+  const data = {
+    exportDate: new Date().toISOString(),
+    appVersion: 'LineupIQ v1',
+    players: getPlayers(),
+    games: getGames(),
+    rules: getRules(),
+    lineups: getLineups()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lineupiq-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('This will replace ALL current data. Continue?')) { event.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.players) savePlayers(data.players);
+      if (data.games) saveGames(data.games);
+      if (data.rules) saveRulesData(data.rules);
+      if (data.lineups) saveLineups(data.lineups);
+      renderRoster();
+      alert('Data restored successfully!');
+    } catch (err) {
+      alert('Error reading file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 // ========== INIT ==========
