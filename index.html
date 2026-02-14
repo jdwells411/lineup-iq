@@ -186,8 +186,8 @@
   @media print {
 
   /* Batting order drag list */
-  .batting-list { list-style: none; padding: 0; margin: 0; max-width: 400px; }
-  .batting-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 4px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: grab; user-select: none; transition: all 0.15s; list-style: none; }
+  .batting-list { padding: 0; margin: 0; max-width: 400px; }
+  .batting-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 4px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: grab; user-select: none; transition: all 0.15s; }
   .batting-item:active { cursor: grabbing; }
   .batting-item.dragging { opacity: 0.4; background: #ebf5fb; }
   .batting-item.drag-over { border-color: var(--primary); border-width: 2px; }
@@ -1067,11 +1067,11 @@ function renderBattingOrder() {
   players.forEach(p => { playerMap[p.id] = p; });
   const el = document.getElementById('battingOrderList');
   
-  let html = '<ul class="batting-list" id="battingListUl">';
+  let html = '<div class="batting-list" id="battingListUl">';
   currentBattingOrder.forEach((id, i) => {
     const p = playerMap[id];
     if (!p) return;
-    html += `<li class="batting-item" draggable="true" data-idx="${i}"
+    html += `<div class="batting-item" draggable="true" data-idx="${i}"
       ondragstart="battingDragStart(event, ${i})"
       ondragover="battingDragOver(event)"
       ondragenter="battingDragEnter(event)"
@@ -1081,9 +1081,9 @@ function renderBattingOrder() {
       <span class="batting-grip">☰</span>
       <span class="batting-order-num">${i + 1}</span>
       <span class="batting-name">#${p.number} ${p.firstName} ${p.lastName}</span>
-    </li>`;
+    </div>`;
   });
-  html += '</ul>';
+  html += '</div>';
   el.innerHTML = html;
   initTouchDrag();
 }
