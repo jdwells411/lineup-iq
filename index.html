@@ -989,8 +989,13 @@ function openGame(gameId) {
 
     <div class="card no-print">
       <h2>Step 3: Batting Order</h2>
-      <p style="color:var(--text-light);margin-bottom:12px;">Drag players to set the batting order. Order carries over from the previous game.</p>
+      <p style="color:var(--text-light);margin-bottom:12px;">Drag players to rearrange, then save when ready.</p>
       <div id="battingOrderList"></div>
+      <div class="btn-group" style="margin-top:12px;">
+        <button class="btn btn-accent" onclick="saveBattingOrderManual()">Save Batting Order</button>
+        <button class="btn btn-outline" onclick="resetBattingOrder()">Reset</button>
+      </div>
+      <div id="battingOrderStatus" style="display:none;color:var(--accent);font-weight:600;margin-top:8px;"></div>
     </div>
 
     <div class="card no-print">
@@ -1046,6 +1051,7 @@ function initBattingOrder() {
   const missing = availableIds.filter(id => !order.includes(id));
   order = [...order, ...missing];
   currentBattingOrder = order;
+  initBattingOrderSnapshot();
   renderBattingOrder();
 }
 
@@ -1135,8 +1141,8 @@ function onTouchEnd(e) {
     const targetIdx = parseInt(targetItem.dataset.idx);
     const moved = currentBattingOrder.splice(touchDragIdx, 1)[0];
     currentBattingOrder.splice(targetIdx, 0, moved);
-    saveBattingOrder(currentBattingOrder);
     renderBattingOrder();
+    showBattingUnsaved();
   }
   touchDragEl = null;
   touchDragIdx = null;
@@ -1171,8 +1177,8 @@ function battingDrop(e, targetIdx) {
   
   const moved = currentBattingOrder.splice(dragSrcIndex, 1)[0];
   currentBattingOrder.splice(targetIdx, 0, moved);
-  saveBattingOrder(currentBattingOrder);
   renderBattingOrder();
+  showBattingUnsaved();
 }
 
 function battingDragEnd(e) {
@@ -1187,8 +1193,34 @@ function moveBatter(idx, direction) {
   const temp = currentBattingOrder[idx];
   currentBattingOrder[idx] = currentBattingOrder[newIdx];
   currentBattingOrder[newIdx] = temp;
-  saveBattingOrder(currentBattingOrder);
   renderBattingOrder();
+  showBattingUnsaved();
+}
+
+let _savedBattingOrder = [];
+
+function initBattingOrderSnapshot() {
+  _savedBattingOrder = [...currentBattingOrder];
+}
+
+function showBattingUnsaved() {
+  const el = document.getElementById('battingOrderStatus');
+  if (el) { el.style.display = 'block'; el.textContent = 'Unsaved changes'; el.style.color = 'var(--warning)'; }
+}
+
+function saveBattingOrderManual() {
+  saveBattingOrder(currentBattingOrder);
+  _savedBattingOrder = [...currentBattingOrder];
+  const el = document.getElementById('battingOrderStatus');
+  if (el) { el.style.display = 'block'; el.textContent = 'Saved!'; el.style.color = 'var(--accent)'; }
+  setTimeout(() => { if (el) el.style.display = 'none'; }, 2000);
+}
+
+function resetBattingOrder() {
+  currentBattingOrder = [..._savedBattingOrder];
+  renderBattingOrder();
+  const el = document.getElementById('battingOrderStatus');
+  if (el) el.style.display = 'none';
 }
 
 function renderBatteryPlan() {
