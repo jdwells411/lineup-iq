@@ -186,7 +186,7 @@
   @media print {
 
   /* Batting order drag list */
-  .batting-list { list-style: none; padding: 0; max-width: 400px; }
+  .batting-list { list-style: none; padding: 0; margin: 0; max-width: 400px; }
   .batting-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 4px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: grab; user-select: none; transition: all 0.15s; }
   .batting-item:active { cursor: grabbing; }
   .batting-item.dragging { opacity: 0.4; background: #ebf5fb; }
@@ -458,7 +458,14 @@ function refreshCurrentPage() {
   if (!active) return;
   const page = active.dataset.page;
   if (page === 'roster') renderRoster();
-  else if (page === 'games') renderGamesList();
+  else if (page === 'games') {
+    // Don't reset to game list if a game is currently open
+    if (currentGameId && document.getElementById('gameDetail').style.display !== 'none') {
+      if (currentLineup) renderLineupOutput();
+    } else {
+      renderGamesList();
+    }
+  }
   else if (page === 'season') renderSeasonStats();
   else if (page === 'rules') renderRulesPage();
   else if (page === 'schedule') renderSchedule();
