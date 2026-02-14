@@ -119,22 +119,22 @@
   .lineup-grid .absent-row { opacity: 0.4; }
 
   /* Baseball field */
-  .field-container { position: relative; width: 420px; height: 440px; margin: 20px auto; }
+  .field-container { position: relative; width: 520px; height: 480px; margin: 20px auto; }
   .field-svg { width: 100%; height: 100%; }
   .field-pos { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  .field-pos .pos-dot { width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 2px solid var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 2; position: relative; }
+  .field-pos .pos-dot { width: 62px; height: 62px; border-radius: 50%; background: #fff; border: 2px solid var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 2; position: relative; }
   .field-pos .pos-label { font-size: 0.6rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
-  .field-pos .pos-player { font-size: 0.7rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+  .field-pos .pos-player { font-size: 0.72rem; font-weight: 600; color: var(--text); white-space: nowrap; }
   /* Positions on the field — realistic baseball layout */
-  .fpos-P  { left: 189px; top: 260px; }
-  .fpos-C  { left: 189px; top: 370px; }
-  .fpos-1B { left: 310px; top: 230px; }
-  .fpos-2B { left: 268px; top: 170px; }
-  .fpos-SS { left: 112px; top: 170px; }
-  .fpos-3B { left: 58px;  top: 230px; }
+  .fpos-P  { left: 229px; top: 275px; }
+  .fpos-C  { left: 229px; top: 395px; }
+  .fpos-1B { left: 380px; top: 240px; }
+  .fpos-2B { left: 315px; top: 165px; }
+  .fpos-SS { left: 145px; top: 165px; }
+  .fpos-3B { left: 68px;  top: 240px; }
   .fpos-LF { left: 30px;  top: 60px; }
-  .fpos-CF { left: 189px; top: 18px; }
-  .fpos-RF { left: 348px; top: 60px; }
+  .fpos-CF { left: 229px; top: 15px; }
+  .fpos-RF { left: 428px; top: 60px; }
 
   /* Bench list */
   .bench-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
@@ -1224,33 +1224,33 @@ function renderLineupOutput() {
     html += `<div class="inning-view" id="inningView_${inn}" style="${inn===1?'':'display:none;'}">`;
     html += '<div class="field-container">';
     // SVG baseball field
-    html += `<svg class="field-svg" viewBox="0 0 420 440" xmlns="http://www.w3.org/2000/svg">
+    html += `<svg class="field-svg" viewBox="0 0 520 480" xmlns="http://www.w3.org/2000/svg">
       <!-- Outfield grass -->
-      <path d="M 210 380 L 10 100 A 280 280 0 0 1 410 100 Z" fill="#4a8c3f" stroke="#3d7534" stroke-width="1"/>
+      <path d="M 260 420 L 10 110 A 340 340 0 0 1 510 110 Z" fill="#4a8c3f" stroke="#3d7534" stroke-width="1"/>
       <!-- Infield dirt -->
-      <path d="M 210 340 L 100 210 L 210 130 L 320 210 Z" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+      <path d="M 260 375 L 120 230 L 260 145 L 400 230 Z" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
       <!-- Infield grass (between mound and bases) -->
-      <circle cx="210" cy="240" r="50" fill="#4a8c3f"/>
+      <circle cx="260" cy="265" r="55" fill="#4a8c3f"/>
       <!-- Pitcher mound -->
-      <circle cx="210" cy="265" r="12" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
-      <circle cx="210" cy="265" r="3" fill="#fff"/>
+      <circle cx="260" cy="285" r="14" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+      <circle cx="260" cy="285" r="3" fill="#fff"/>
       <!-- Base paths -->
-      <line x1="210" y1="340" x2="320" y2="230" stroke="#fff" stroke-width="2" opacity="0.6"/>
-      <line x1="320" y1="230" x2="210" y2="130" stroke="#fff" stroke-width="2" opacity="0.6"/>
-      <line x1="210" y1="130" x2="100" y2="230" stroke="#fff" stroke-width="2" opacity="0.6"/>
-      <line x1="100" y1="230" x2="210" y2="340" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="260" y1="375" x2="400" y2="250" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="400" y1="250" x2="260" y2="145" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="260" y1="145" x2="120" y2="250" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="120" y1="250" x2="260" y2="375" stroke="#fff" stroke-width="2" opacity="0.6"/>
       <!-- Bases -->
-      <rect x="204" y="334" width="12" height="12" fill="#fff" transform="rotate(45 210 340)"/>
-      <rect x="314" y="224" width="11" height="11" fill="#fff" transform="rotate(45 320 230)"/>
-      <rect x="205" y="124" width="11" height="11" fill="#fff" transform="rotate(45 210 130)"/>
-      <rect x="95" y="224" width="11" height="11" fill="#fff" transform="rotate(45 100 230)"/>
+      <rect x="254" y="369" width="12" height="12" fill="#fff" transform="rotate(45 260 375)"/>
+      <rect x="394" y="244" width="11" height="11" fill="#fff" transform="rotate(45 400 250)"/>
+      <rect x="255" y="139" width="11" height="11" fill="#fff" transform="rotate(45 260 145)"/>
+      <rect x="115" y="244" width="11" height="11" fill="#fff" transform="rotate(45 120 250)"/>
       <!-- Foul lines -->
-      <line x1="210" y1="380" x2="0" y2="80" stroke="#fff" stroke-width="2" opacity="0.4"/>
-      <line x1="210" y1="380" x2="420" y2="80" stroke="#fff" stroke-width="2" opacity="0.4"/>
+      <line x1="260" y1="420" x2="0" y2="90" stroke="#fff" stroke-width="2" opacity="0.4"/>
+      <line x1="260" y1="420" x2="520" y2="90" stroke="#fff" stroke-width="2" opacity="0.4"/>
       <!-- Batter's box area -->
-      <rect x="195" y="365" width="30" height="40" rx="3" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+      <rect x="243" y="400" width="34" height="44" rx="3" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
       <!-- Outfield fence arc -->
-      <path d="M 10 100 A 280 280 0 0 1 410 100" fill="none" stroke="#2c3e50" stroke-width="3" opacity="0.3"/>
+      <path d="M 10 110 A 340 340 0 0 1 510 110" fill="none" stroke="#2c3e50" stroke-width="3" opacity="0.3"/>
     </svg>`;
     // Player position labels overlaid
     POSITIONS.forEach(pos => {
