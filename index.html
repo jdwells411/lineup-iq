@@ -776,6 +776,7 @@ function setBattery(pos, inning, playerId) {
 }
 
 // ========== LINEUP GENERATION ENGINE ==========
+// Constraint-first approach: guarantees rules are met before optimizing for skill
 function generateLineup() {
   const rules = getRules();
   const allPlayers = getPlayers();
@@ -787,167 +788,375 @@ function generateLineup() {
   }
 
   const innings = rules.innings;
-  const fieldersCount = rules.fielders;
-  const benchCount = available.length - fieldersCount;
+  const numFielders = rules.fielders;
+  const numBench = available.length - numFielders;
   const minInfield = rules.minInfield;
-  
-  // assignments[inning] = { position: playerId } or { BENCH: [playerIds] }
-  const assignments = {};
-  for (let i = 1; i <= innings; i++) assignments[i] = {};
+  const playerIds = available.map(p => p.id);
+  const N = playerIds.length;
 
-  // Track per-player stats for this game
-  const playerStats = {};
-  available.forEach(p => {
-    playerStats[p.id] = { infieldInnings: 0, benchCount: 0, positions: [] };
-  });
-
-  // Lock in battery assignments first
-  for (let inn = 1; inn <= innings; inn++) {
-    const pitcher = currentBattery['P'] && currentBattery['P'][inn];
-    const catcher = currentBattery['C'] && currentBattery['C'][inn];
-    if (pitcher) { assignments[inn]['P'] = pitcher; playerStats[pitcher].positions.push('P'); }
-    if (catcher) { assignments[inn]['C'] = catcher; playerStats[catcher].positions.push('C'); }
-  }
-
-  // Build position suitability scores per player
+  // Build position suitability scores
   const posScores = {};
   available.forEach(p => {
     posScores[p.id] = {};
-    POSITIONS.forEach(pos => {
-      posScores[p.id][pos] = calcPositionScore(p, pos, rules);
-    });
+    POSITIONS.forEach(pos => { posScores[p.id][pos] = calcPositionScore(p, pos, rules); });
   });
 
-  // Greedy assignment: fill inning by inning
+  // ---- PHASE 1: Allocate bench slots fairly ----
+  // Each player benches floor(totalBenchSlots/N) or ceil(totalBenchSlots/N) times
+  const totalBenchSlots = numBench * innings;
+  const baseBench = Math.floor(totalBenchSlots / N);
+  const extraBench = totalBenchSlots % N;
+  
+  // Assign bench counts: some players get baseBench+1, rest get baseBench
+  // Prefer benching players with weaker overall fielding more
+  const playerOverall = {};
+  available.forEach(p => {
+    playerOverall[p.id] = POSITIONS.reduce((sum, pos) => sum + posScores[p.id][pos], 0);
+  });
+  const sortedBySkill = [...playerIds].sort((a, b) => playerOverall[a] - playerOverall[b]);
+  
+  const targetBench = {};
+  sortedBySkill.forEach((id, i) => {
+    targetBench[id] = baseBench + (i < extraBench ? 1 : 0);
+  });
+
+  // ---- PHASE 2: Allocate infield slots to guarantee minimum ----
+  // Total infield slots available = 4 infield positions * innings
+  // Each player needs at least minInfield infield innings
+  // But only in innings where they're not benched and not locked as P/C
+  
+  // Build battery locks
+  const batteryLock = {}; // batteryLock[inn] = { P: playerId, C: playerId }
   for (let inn = 1; inn <= innings; inn++) {
-    const assigned = new Set(Object.values(assignments[inn]));
-    const remaining = POSITIONS.filter(pos => !assignments[inn][pos]);
-    const unassigned = available.filter(p => !assigned.has(p.id));
-
-    // Sort remaining positions by difficulty (fewer good candidates = fill first)
-    remaining.sort((a, b) => {
-      const aCount = unassigned.filter(p => posScores[p.id][a] >= 3).length;
-      const bCount = unassigned.filter(p => posScores[p.id][b] >= 3).length;
-      return aCount - bCount;
-    });
-
-    const innAssigned = new Set(assigned);
-    remaining.forEach(pos => {
-      const candidates = available.filter(p => !innAssigned.has(p.id));
-      if (candidates.length === 0) return;
-
-      // Score candidates considering: position fit, infield need, bench fairness
-      candidates.sort((a, b) => {
-        let scoreA = posScores[a.id][pos];
-        let scoreB = posScores[b.id][pos];
-        
-        // Boost players who need infield innings
-        if (INFIELD.includes(pos)) {
-          if (playerStats[a.id].infieldInnings < minInfield) scoreA += 2;
-          if (playerStats[b.id].infieldInnings < minInfield) scoreB += 2;
-        }
-        
-        // Penalize players who've been benched less (bench fairness — share the bench)
-        // Players who've been benched fewer times should NOT get priority for fielding
-        // unless they need infield innings
-        
-        return scoreB - scoreA;
-      });
-
-      const pick = candidates[0];
-      assignments[inn][pos] = pick.id;
-      innAssigned.add(pick.id);
-      if (INFIELD.includes(pos)) playerStats[pick.id].infieldInnings++;
-      playerStats[pick.id].positions.push(pos);
-    });
-
-    // Remaining players go to bench
-    const benchPlayers = available.filter(p => !innAssigned.has(p.id)).map(p => p.id);
-    assignments[inn]['BENCH'] = benchPlayers;
-    benchPlayers.forEach(id => {
-      playerStats[id].benchCount++;
-      playerStats[id].positions.push('BENCH');
-    });
+    batteryLock[inn] = {};
+    const pitcher = currentBattery['P'] && currentBattery['P'][inn];
+    const catcher = currentBattery['C'] && currentBattery['C'][inn];
+    if (pitcher) batteryLock[inn]['P'] = pitcher;
+    if (catcher) batteryLock[inn]['C'] = catcher;
   }
 
-  // Post-process: try swaps to meet infield minimums
-  for (let pass = 0; pass < 3; pass++) {
-    available.forEach(player => {
-      if (playerStats[player.id].infieldInnings >= minInfield) return;
-      const needed = minInfield - playerStats[player.id].infieldInnings;
+  // Track assignments: grid[inn][pos] = playerId
+  const grid = {};
+  for (let inn = 1; inn <= innings; inn++) {
+    grid[inn] = {};
+    if (batteryLock[inn]['P']) grid[inn]['P'] = batteryLock[inn]['P'];
+    if (batteryLock[inn]['C']) grid[inn]['C'] = batteryLock[inn]['C'];
+  }
+
+  // Track per-player: how many infield innings assigned, how many bench, which innings used
+  const pState = {};
+  playerIds.forEach(id => {
+    pState[id] = { infieldCount: 0, benchCount: 0, innAssigned: {} };
+  });
+  
+  // Count battery innings as assigned (P counts as infield for pitcher? No — P is not infield)
+  // P and C are separate positions, not infield
+  for (let inn = 1; inn <= innings; inn++) {
+    if (grid[inn]['P']) pState[grid[inn]['P']].innAssigned[inn] = 'P';
+    if (grid[inn]['C']) pState[grid[inn]['C']].innAssigned[inn] = 'C';
+  }
+
+  // ---- PHASE 2a: Assign bench innings ----
+  // Spread bench fairly across innings — no player benched in consecutive innings if avoidable
+  const benchAssignments = {}; // benchAssignments[inn] = Set of playerIds
+  for (let inn = 1; inn <= innings; inn++) benchAssignments[inn] = new Set();
+
+  // Sort players by targetBench descending so heaviest bench loads get placed first
+  const benchOrder = [...playerIds].sort((a, b) => targetBench[b] - targetBench[a]);
+  
+  benchOrder.forEach(id => {
+    let needed = targetBench[id];
+    if (needed <= 0) return;
+    
+    // Find best innings to bench this player (avoid innings where they're battery-locked)
+    const candidateInnings = [];
+    for (let inn = 1; inn <= innings; inn++) {
+      if (pState[id].innAssigned[inn]) continue; // battery locked
+      if (benchAssignments[inn].size >= numBench) continue; // bench full
+      candidateInnings.push(inn);
+    }
+    
+    // Spread evenly: pick innings with most spacing
+    // Simple approach: sort by fewest current bench assignments, then spread
+    candidateInnings.sort((a, b) => benchAssignments[a].size - benchAssignments[b].size);
+    
+    // Take the needed number of innings, trying to space them out
+    const chosen = [];
+    const remaining = [...candidateInnings];
+    while (chosen.length < needed && remaining.length > 0) {
+      // Pick the inning with the fewest bench players assigned so far
+      remaining.sort((a, b) => benchAssignments[a].size - benchAssignments[b].size);
+      const pick = remaining.shift();
+      chosen.push(pick);
+      benchAssignments[pick].add(id);
+      pState[id].innAssigned[pick] = 'BENCH';
+      pState[id].benchCount++;
+    }
+  });
+
+  // ---- PHASE 2b: Guarantee infield minimums ----
+  // For each player, figure out which innings they're available for fielding (not bench, not battery)
+  // and pre-assign them to infield positions in enough innings
+  
+  const infieldNeeds = {}; // id -> how many more infield innings needed
+  playerIds.forEach(id => {
+    // Count if battery position counts (it doesn't — P and C are not infield)
+    infieldNeeds[id] = minInfield;
+  });
+
+  // Pre-assign infield slots: for each inning, we have 4 infield spots
+  // Track infield slots: infieldSlots[inn] = array of playerIds assigned to infield this inning
+  const infieldSlots = {};
+  for (let inn = 1; inn <= innings; inn++) infieldSlots[inn] = [];
+
+  // Sort players by who needs infield most and has fewest available innings
+  const infieldPriority = [...playerIds].sort((a, b) => {
+    const aAvail = Object.keys(pState[a].innAssigned).length;
+    const bAvail = Object.keys(pState[b].innAssigned).length;
+    const aFreeInnings = innings - aAvail; // innings where they could play infield
+    const bFreeInnings = innings - bAvail;
+    // Players with fewer free innings are harder to place — prioritize them
+    return aFreeInnings - bFreeInnings;
+  });
+
+  infieldPriority.forEach(id => {
+    let needed = infieldNeeds[id];
+    if (needed <= 0) return;
+    
+    // Find innings where this player is free (not bench, not battery) and infield slots available
+    const freeInnings = [];
+    for (let inn = 1; inn <= innings; inn++) {
+      if (pState[id].innAssigned[inn]) continue; // already assigned (bench/battery)
+      if (infieldSlots[inn].length >= 4) continue; // all 4 infield spots taken
+      freeInnings.push(inn);
+    }
+    
+    // Assign to innings with most remaining infield slots
+    freeInnings.sort((a, b) => infieldSlots[b].length - infieldSlots[a].length);
+    // Actually sort so we pick innings with FEWEST infield so far (spread the load)
+    freeInnings.sort((a, b) => infieldSlots[a].length - infieldSlots[b].length);
+    
+    for (let i = 0; i < freeInnings.length && needed > 0; i++) {
+      const inn = freeInnings[i];
+      infieldSlots[inn].push(id);
+      pState[id].innAssigned[inn] = 'INFIELD'; // placeholder — specific position assigned later
+      pState[id].infieldCount++;
+      needed--;
+    }
+    infieldNeeds[id] = needed;
+  });
+
+  // ---- PHASE 3: Assign specific positions ----
+  for (let inn = 1; inn <= innings; inn++) {
+    const innFielders = []; // players who field this inning (not bench)
+    const innInfielders = new Set(infieldSlots[inn]); // must play infield
+    
+    playerIds.forEach(id => {
+      const assignment = pState[id].innAssigned[inn];
+      if (assignment === 'BENCH') return;
+      if (assignment === 'P' || assignment === 'C') return; // already set
+      innFielders.push(id);
+    });
+
+    // Also include players with no assignment yet for this inning
+    playerIds.forEach(id => {
+      if (!pState[id].innAssigned[inn] && !innFielders.includes(id)) {
+        innFielders.push(id);
+      }
+    });
+
+    // Positions still to fill (exclude P/C if battery-locked)
+    const positionsToFill = POSITIONS.filter(pos => !grid[inn][pos]);
+    
+    // Separate infield and outfield positions to fill
+    const ifPositions = positionsToFill.filter(p => INFIELD.includes(p));
+    const ofPositions = positionsToFill.filter(p => !INFIELD.includes(p));
+
+    const assigned = new Set(Object.values(grid[inn]));
+
+    // First: assign players who MUST play infield this inning to infield positions
+    const mustInfield = innFielders.filter(id => innInfielders.has(id) && !assigned.has(id));
+    const canGoAnywhere = innFielders.filter(id => !innInfielders.has(id) && !assigned.has(id));
+
+    // Match must-infield players to infield positions by best fit
+    const ifAssignment = bestMatch(mustInfield, ifPositions, posScores);
+    ifAssignment.forEach(([id, pos]) => {
+      grid[inn][pos] = id;
+      assigned.add(id);
+    });
+
+    // Remaining infield positions filled by anyone
+    const remainingIF = ifPositions.filter(p => !grid[inn][p]);
+    const remainingPlayers = canGoAnywhere.filter(id => !assigned.has(id));
+    
+    if (remainingIF.length > 0 && remainingPlayers.length > 0) {
+      const ifFill = bestMatch(remainingPlayers, remainingIF, posScores);
+      ifFill.forEach(([id, pos]) => {
+        grid[inn][pos] = id;
+        assigned.add(id);
+      });
+    }
+
+    // Fill outfield positions with remaining players
+    const remainingOF = ofPositions.filter(p => !grid[inn][p]);
+    const outfielders = [...canGoAnywhere, ...innFielders].filter(id => !assigned.has(id));
+    
+    if (remainingOF.length > 0 && outfielders.length > 0) {
+      const ofFill = bestMatch(outfielders, remainingOF, posScores);
+      ofFill.forEach(([id, pos]) => {
+        grid[inn][pos] = id;
+        assigned.add(id);
+      });
+    }
+
+    // Any still-unassigned fielder positions — grab whoever's left
+    const stillOpen = POSITIONS.filter(p => !grid[inn][p]);
+    const stillFree = playerIds.filter(id => !assigned.has(id) && pState[id].innAssigned[inn] !== 'BENCH');
+    stillOpen.forEach((pos, i) => {
+      if (i < stillFree.length) {
+        grid[inn][pos] = stillFree[i];
+        assigned.add(stillFree[i]);
+      }
+    });
+
+    // Bench
+    grid[inn]['BENCH'] = playerIds.filter(id => !assigned.has(id));
+  }
+
+  // ---- PHASE 4: Verify and fix any remaining issues ----
+  // Recount actual infield innings
+  const actualInfield = {};
+  const actualBench = {};
+  playerIds.forEach(id => { actualInfield[id] = 0; actualBench[id] = 0; });
+  
+  for (let inn = 1; inn <= innings; inn++) {
+    INFIELD.forEach(pos => {
+      if (grid[inn][pos]) actualInfield[grid[inn][pos]]++;
+    });
+    (grid[inn]['BENCH'] || []).forEach(id => actualBench[id]++);
+  }
+
+  // Repair pass: swap players who are short on infield with those who have surplus
+  for (let pass = 0; pass < 10; pass++) {
+    let fixed = false;
+    playerIds.forEach(shortId => {
+      if (actualInfield[shortId] >= minInfield) return;
       
-      for (let inn = 1; inn <= innings && playerStats[player.id].infieldInnings < minInfield; inn++) {
-        const currentPos = Object.entries(assignments[inn]).find(([pos, pid]) => pid === player.id);
-        if (!currentPos) continue;
-        const [myPos] = currentPos;
-        if (INFIELD.includes(myPos)) continue; // already infield this inning
-        if (myPos === 'P' || myPos === 'C') continue; // don't move battery
+      for (let inn = 1; inn <= innings; inn++) {
+        if (actualInfield[shortId] >= minInfield) return;
         
-        // Try to swap with an infielder who has surplus infield innings
+        // Find what position shortId has this inning
+        const shortPos = Object.entries(grid[inn]).find(([pos, pid]) => pid === shortId && pos !== 'BENCH');
+        if (!shortPos) continue;
+        const [myPos] = shortPos;
+        if (INFIELD.includes(myPos)) continue; // already infield
+        if (myPos === 'P' || myPos === 'C') continue;
+        
+        // Find an infielder this inning who has surplus
         for (const ifPos of INFIELD) {
-          const occupant = assignments[inn][ifPos];
-          if (!occupant) continue;
-          // Check battery lock
-          if ((currentBattery['P'] && currentBattery['P'][inn] === occupant) ||
-              (currentBattery['C'] && currentBattery['C'][inn] === occupant)) continue;
+          const occupantId = grid[inn][ifPos];
+          if (!occupantId) continue;
+          if (isBatteryLocked(inn, occupantId)) continue;
+          if (actualInfield[occupantId] <= minInfield) continue; // no surplus
           
-          if (playerStats[occupant].infieldInnings > minInfield) {
-            // Swap
-            assignments[inn][ifPos] = player.id;
-            assignments[inn][myPos] = occupant;
-            playerStats[player.id].infieldInnings++;
-            playerStats[occupant].infieldInnings--;
-            break;
-          }
+          // Swap them
+          grid[inn][ifPos] = shortId;
+          grid[inn][myPos] = occupantId;
+          actualInfield[shortId]++;
+          actualInfield[occupantId]--;
+          fixed = true;
+          break;
         }
       }
     });
-  }
-
-  // Post-process: bench fairness — no one benched twice before everyone benched once
-  for (let pass = 0; pass < 3; pass++) {
-    const maxBench = Math.max(...available.map(p => playerStats[p.id].benchCount));
-    const minBench = Math.min(...available.map(p => playerStats[p.id].benchCount));
-    if (maxBench - minBench <= 1) break;
-
-    for (let inn = 1; inn <= innings; inn++) {
-      const benchIds = assignments[inn]['BENCH'] || [];
-      const overBenched = benchIds.filter(id => playerStats[id].benchCount > minBench + 1);
+    
+    // Also try swapping bench players in if they need infield
+    playerIds.forEach(shortId => {
+      if (actualInfield[shortId] >= minInfield) return;
       
-      overBenched.forEach(obId => {
-        // Try to swap with a fielder who has fewer bench stints
-        const fieldPositions = POSITIONS.filter(pos => {
-          const pid = assignments[inn][pos];
-          return pid && playerStats[pid].benchCount < playerStats[obId].benchCount &&
-            pos !== 'P' && pos !== 'C' &&
-            !((currentBattery['P'] && currentBattery['P'][inn] === pid) ||
-              (currentBattery['C'] && currentBattery['C'][inn] === pid));
-        });
+      for (let inn = 1; inn <= innings; inn++) {
+        if (actualInfield[shortId] >= minInfield) return;
+        if (!(grid[inn]['BENCH'] || []).includes(shortId)) continue; // not benched this inning
         
-        if (fieldPositions.length > 0) {
-          // Pick the fielder with fewest bench stints
-          fieldPositions.sort((a, b) => playerStats[assignments[inn][a]].benchCount - playerStats[assignments[inn][b]].benchCount);
-          const swapPos = fieldPositions[0];
-          const swapId = assignments[inn][swapPos];
+        // Try to swap with a non-infield fielder
+        const outfieldPositions = ['LF', 'CF', 'RF'];
+        for (const ofPos of outfieldPositions) {
+          const occupantId = grid[inn][ofPos];
+          if (!occupantId) continue;
+          if (isBatteryLocked(inn, occupantId)) continue;
           
-          // Swap
-          assignments[inn][swapPos] = obId;
-          const benchIdx = assignments[inn]['BENCH'].indexOf(obId);
-          assignments[inn]['BENCH'][benchIdx] = swapId;
-          
-          // Update stats
-          playerStats[obId].benchCount--;
-          playerStats[swapId].benchCount++;
-          if (INFIELD.includes(swapPos)) {
-            playerStats[obId].infieldInnings++;
-            playerStats[swapId].infieldInnings--;
+          // Can we put the occupant on bench instead and shortId in outfield?
+          // Then find someone in infield with surplus to swap with shortId
+          // Simpler: find infielder with surplus, put them in outfield, shortId in infield, occupant stays
+          for (const ifPos of INFIELD) {
+            const ifOccupant = grid[inn][ifPos];
+            if (!ifOccupant) continue;
+            if (isBatteryLocked(inn, ifOccupant)) continue;
+            if (actualInfield[ifOccupant] <= minInfield) continue;
+            
+            // Three-way: shortId -> ifPos, ifOccupant -> ofPos, occupant -> bench
+            grid[inn][ifPos] = shortId;
+            grid[inn][ofPos] = ifOccupant;
+            const benchIdx = grid[inn]['BENCH'].indexOf(shortId);
+            grid[inn]['BENCH'][benchIdx] = occupantId;
+            
+            actualInfield[shortId]++;
+            actualInfield[ifOccupant]--;
+            actualBench[shortId]--;
+            actualBench[occupantId]++;
+            fixed = true;
+            break;
           }
+          if (actualInfield[shortId] >= minInfield) break;
         }
-      });
-    }
+      }
+    });
+    
+    if (!fixed) break;
   }
 
-  currentLineup = assignments;
+  // Bench fairness repair
+  for (let pass = 0; pass < 10; pass++) {
+    const maxB = Math.max(...playerIds.map(id => actualBench[id]));
+    const minB = Math.min(...playerIds.map(id => actualBench[id]));
+    if (maxB - minB <= 1) break;
+    
+    let swapped = false;
+    for (let inn = 1; inn <= innings; inn++) {
+      const bench = grid[inn]['BENCH'] || [];
+      for (let bi = 0; bi < bench.length; bi++) {
+        const benchId = bench[bi];
+        if (actualBench[benchId] <= minB + 1) continue;
+        
+        // Find a fielder with fewer bench stints to swap
+        for (const pos of [...'LF', 'CF', 'RF'].filter(p => grid[inn][p])) {
+          // Fix: iterate actual outfield positions
+        }
+        const outPositions = ['LF', 'CF', 'RF'];
+        for (const pos of outPositions) {
+          const fielderId = grid[inn][pos];
+          if (!fielderId) continue;
+          if (isBatteryLocked(inn, fielderId)) continue;
+          if (actualBench[fielderId] >= actualBench[benchId] - 1) continue;
+          
+          // Check infield constraint: if benchId would lose infield, ok if they have surplus
+          // benchId goes to outfield (not infield), fielderId goes to bench
+          // Only need to check fielderId's infield count doesn't matter (they're outfield)
+          
+          grid[inn][pos] = benchId;
+          grid[inn]['BENCH'][bi] = fielderId;
+          actualBench[benchId]--;
+          actualBench[fielderId]++;
+          swapped = true;
+          break;
+        }
+      }
+    }
+    if (!swapped) break;
+  }
+
+  // Convert to the currentLineup format
+  currentLineup = grid;
   
   // Save
   const lineups = getLineups();
@@ -960,6 +1169,36 @@ function generateLineup() {
   saveLineups(lineups);
   
   renderLineupOutput();
+}
+
+function isBatteryLocked(inn, playerId) {
+  return (currentBattery['P'] && currentBattery['P'][inn] === playerId) ||
+         (currentBattery['C'] && currentBattery['C'][inn] === playerId);
+}
+
+// Hungarian-lite: greedily match players to positions by best score
+function bestMatch(playerList, posList, scores) {
+  const result = [];
+  const usedPlayers = new Set();
+  const usedPositions = new Set();
+  
+  // Build all possible (player, position, score) pairs and sort by score desc
+  const pairs = [];
+  playerList.forEach(id => {
+    posList.forEach(pos => {
+      pairs.push({ id, pos, score: scores[id] ? scores[id][pos] || 0 : 0 });
+    });
+  });
+  pairs.sort((a, b) => b.score - a.score);
+  
+  pairs.forEach(({ id, pos, score }) => {
+    if (usedPlayers.has(id) || usedPositions.has(pos)) return;
+    result.push([id, pos]);
+    usedPlayers.add(id);
+    usedPositions.add(pos);
+  });
+  
+  return result;
 }
 
 function calcPositionScore(player, pos, rules) {
