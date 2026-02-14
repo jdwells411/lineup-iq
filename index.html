@@ -1071,7 +1071,13 @@ function renderBattingOrder() {
   currentBattingOrder.forEach((id, i) => {
     const p = playerMap[id];
     if (!p) return;
-    html += `<li class="batting-item" data-idx="${i}">
+    html += `<li class="batting-item" draggable="true" data-idx="${i}"
+      ondragstart="battingDragStart(event, ${i})"
+      ondragover="battingDragOver(event)"
+      ondragenter="battingDragEnter(event)"
+      ondragleave="battingDragLeave(event)"
+      ondrop="battingDrop(event, ${i})"
+      ondragend="battingDragEnd(event)">
       <span class="batting-grip">☰</span>
       <span class="batting-order-num">${i + 1}</span>
       <span class="batting-name">#${p.number} ${p.firstName} ${p.lastName}</span>
@@ -1096,14 +1102,6 @@ function initTouchDrag() {
     item.addEventListener('touchstart', onTouchStart, { passive: false });
     item.addEventListener('touchmove', onTouchMove, { passive: false });
     item.addEventListener('touchend', onTouchEnd);
-    // Keep mouse drag working for desktop
-    item.setAttribute('draggable', 'true');
-    item.addEventListener('dragstart', e => battingDragStart(e, parseInt(item.dataset.idx)));
-    item.addEventListener('dragover', e => battingDragOver(e));
-    item.addEventListener('dragenter', e => battingDragEnter(e));
-    item.addEventListener('dragleave', e => battingDragLeave(e));
-    item.addEventListener('drop', e => battingDrop(e, parseInt(item.dataset.idx)));
-    item.addEventListener('dragend', e => battingDragEnd(e));
   });
 }
 
