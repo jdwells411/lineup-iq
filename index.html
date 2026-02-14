@@ -1698,17 +1698,17 @@ function openPrintView() {
     <path d="M 10 110 A 340 340 0 0 1 510 110" fill="none" stroke="#2c3e50" stroke-width="3" opacity="0.3"/>
   </svg>`;
 
-  // Position coordinates for print (relative to 420x380 container)
+  // Position coordinates for print (percentage-based for flexible sizing)
   const printPositions = {
-    P:  { left: '185px', top: '210px' },
-    C:  { left: '185px', top: '320px' },
-    '1B': { left: '300px', top: '205px' },
-    '2B': { left: '248px', top: '118px' },
-    SS: { left: '128px', top: '118px' },
-    '3B': { left: '68px',  top: '205px' },
-    LF: { left: '24px',  top: '48px' },
-    CF: { left: '185px', top: '10px' },
-    RF: { left: '346px', top: '48px' }
+    P:  { left: '44%', top: '55%' },
+    C:  { left: '44%', top: '84%' },
+    '1B': { left: '71%', top: '54%' },
+    '2B': { left: '59%', top: '31%' },
+    SS: { left: '30%', top: '31%' },
+    '3B': { left: '16%',  top: '54%' },
+    LF: { left: '6%',  top: '13%' },
+    CF: { left: '44%', top: '3%' },
+    RF: { left: '82%', top: '13%' }
   };
 
   const gameHeader = `
@@ -1759,9 +1759,9 @@ function openPrintView() {
   for (let inn = 1; inn <= rules.innings; inn++) {
     fieldPages += `<div style="page-break-before:always;padding:10px;">`;
     fieldPages += gameHeader;
-    fieldPages += `<h3 style="text-align:center;font-size:1rem;margin:6px 0;">Inning ${inn}</h3>`;
-    fieldPages += `<div style="position:relative;width:420px;height:380px;margin:0 auto;">`;
-    fieldPages += fieldSVG.replace('width:100%;height:100%', 'width:420px;height:380px');
+    fieldPages += `<h3 style="text-align:center;font-size:1.2rem;margin:4px 0;">Inning ${inn}</h3>`;
+    fieldPages += `<div style="position:relative;width:100%;max-width:600px;height:540px;margin:0 auto;">`;
+    fieldPages += fieldSVG.replace('width:100%;height:100%', 'width:100%;height:540px');
     
     POSITIONS.forEach(pos => {
       const pid = currentLineup[inn][pos];
@@ -1769,9 +1769,9 @@ function openPrintView() {
       const name = player ? `#${player.number} ${player.firstName}` : '—';
       const coords = printPositions[pos];
       fieldPages += `<div style="position:absolute;left:${coords.left};top:${coords.top};text-align:center;">
-        <div style="width:52px;height:52px;border-radius:50%;background:#fff;border:2px solid #1a5276;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.2);">
-          <span style="font-size:0.55rem;font-weight:700;color:#1a5276;text-transform:uppercase;">${pos}</span>
-          <span style="font-size:0.65rem;font-weight:600;">${name}</span>
+        <div style="width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid #1a5276;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.2);">
+          <span style="font-size:0.7rem;font-weight:700;color:#1a5276;text-transform:uppercase;">${pos}</span>
+          <span style="font-size:0.75rem;font-weight:600;">${name}</span>
         </div>
       </div>`;
     });
