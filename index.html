@@ -39,7 +39,7 @@
   nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
   /* Main content */
-  main { max-width: 1200px; margin: 0 auto; padding: 12px; }
+  main { max-width: 100%; margin: 0 auto; padding: 8px; }
   .page { display: none; }
   .page.active { display: block; }
 
@@ -265,7 +265,7 @@
   <div class="card">
     <h2>Season Schedule</h2>
     <p style="color:var(--text-light);margin-bottom:16px;">Enter all games for the season. Home team gets the 3rd base dugout.</p>
-    <div class="btn-group no-print" style="margin-bottom:16px;">
+    <div class="btn-group no-print" style="margin-bottom:8px;">
       <button class="btn btn-primary" onclick="showGameModal()">+ Add Game</button>
     </div>
     <div id="scheduleTable"></div>
