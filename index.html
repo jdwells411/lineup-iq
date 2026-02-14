@@ -382,9 +382,30 @@
   </div>
 </div>
 
+<!-- Evaluation Modal -->
+<div class="modal-overlay" id="evalModal">
+  <div class="modal" style="max-width:700px;">
+    <h2 id="evalModalTitle">Player Evaluation</h2>
+    <input type="hidden" id="evalPlayerId">
+    <div id="evalContent"></div>
+    <div style="margin-top:16px;">
+      <label>Notes (optional)</label>
+      <input type="text" id="evalNotes" placeholder="e.g., Arm got stronger after practice drills">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEvalModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveEvaluation()">Save Evaluation</button>
+    </div>
+    <div id="evalHistorySection" style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px;">
+      <h3>Evaluation History</h3>
+      <div id="evalHistoryList"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ========== DATA LAYER ==========
-const STORAGE_KEYS = { players: 'liq_players', games: 'liq_games', rules: 'liq_rules', lineups: 'liq_lineups', battingOrder: 'liq_batting' };
+const STORAGE_KEYS = { players: 'liq_players', games: 'liq_games', rules: 'liq_rules', lineups: 'liq_lineups', battingOrder: 'liq_batting', evalHistory: 'liq_evals' };
 
 const DEFAULT_SKILLS = [
   'Fielding Ability', 'Outfield Ability', 'Infield Catching Ability',
@@ -415,6 +436,8 @@ function getLineups() { return load(STORAGE_KEYS.lineups) || {}; }
 function saveLineups(l) { save(STORAGE_KEYS.lineups, l); }
 function getBattingOrder() { return load(STORAGE_KEYS.battingOrder) || []; }
 function saveBattingOrder(b) { save(STORAGE_KEYS.battingOrder, b); }
+function getEvalHistory() { return load(STORAGE_KEYS.evalHistory) || []; }
+function saveEvalHistory(h) { save(STORAGE_KEYS.evalHistory, h); }
 
 function getRules() {
   const defaults = {
@@ -463,7 +486,11 @@ function renderRoster() {
       const val = (p.skills && p.skills[s]) || '-';
       html += `<td>${val}</td>`;
     });
-    html += `<td><button class="btn btn-outline btn-sm" onclick="editPlayer('${p.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">✕</button></td>`;
+    html += `<td>
+      <button class="btn btn-accent btn-sm" onclick="showEvalModal('${p.id}')">Evaluate</button>
+      <button class="btn btn-outline btn-sm" onclick="editPlayer('${p.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">✕</button>
+    </td>`;
     html += '</tr>';
   });
   html += '</tbody></table>';
@@ -546,6 +573,152 @@ function deletePlayer(id) {
   if (!confirm('Remove this player from the roster?')) return;
   savePlayers(getPlayers().filter(p => p.id !== id));
   renderRoster();
+}
+
+// ========== PLAYER EVALUATION ==========
+function showEvalModal(id) {
+  const player = getPlayers().find(p => p.id === id);
+  const rules = getRules();
+  const modal = document.getElementById('evalModal');
+  
+  document.getElementById('evalPlayerId').value = id;
+  document.getElementById('evalModalTitle').textContent = `Evaluate: #${player.number} ${player.firstName} ${player.lastName}`;
+  document.getElementById('evalNotes').value = '';
+
+  // Build before/after skill grid
+  let html = '<table style="width:100%;"><thead><tr><th style="text-align:left;">Skill</th><th style="text-align:center;">Current</th><th style="text-align:center;">New</th><th></th></tr></thead><tbody>';
+  rules.skillAttributes.forEach(attr => {
+    const current = (player.skills && player.skills[attr]) || 0;
+    html += `<tr>
+      <td style="font-size:0.85rem;font-weight:600;">${attr}</td>
+      <td style="text-align:center;"><span class="badge badge-active">${current || '-'}</span></td>
+      <td style="text-align:center;">
+        <select data-eval-skill="${attr}" style="width:60px;text-align:center;">`;
+    for (let i = 0; i <= 5; i++) html += `<option value="${i}" ${i === current ? 'selected' : ''}>${i === 0 ? '-' : i}</option>`;
+    html += `</select></td>
+      <td id="evalDiff_${attr.replace(/\s/g,'_')}" style="font-size:0.8rem;width:40px;text-align:center;"></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  // Pitcher/catcher flags
+  html += `<div style="margin-top:12px;display:flex;gap:20px;">
+    <div class="toggle-row"><input type="checkbox" id="evalCanPitch" ${player.canPitch ? 'checked' : ''}><label for="evalCanPitch">Can Pitch</label></div>
+    <div class="toggle-row"><input type="checkbox" id="evalCanCatch" ${player.canCatch ? 'checked' : ''}><label for="evalCanCatch">Can Catch</label></div>
+  </div>`;
+
+  document.getElementById('evalContent').innerHTML = html;
+
+  // Add change listeners to show diff arrows
+  document.querySelectorAll('[data-eval-skill]').forEach(sel => {
+    sel.addEventListener('change', () => updateEvalDiffs(player));
+  });
+
+  // Render history
+  renderEvalHistory(id);
+  modal.classList.add('active');
+}
+
+function updateEvalDiffs(player) {
+  const rules = getRules();
+  rules.skillAttributes.forEach(attr => {
+    const current = (player.skills && player.skills[attr]) || 0;
+    const sel = document.querySelector(`[data-eval-skill="${attr}"]`);
+    const newVal = parseInt(sel.value) || 0;
+    const diffEl = document.getElementById('evalDiff_' + attr.replace(/\s/g, '_'));
+    if (!diffEl) return;
+    if (newVal > current) {
+      diffEl.innerHTML = `<span style="color:var(--accent);font-weight:700;">▲ +${newVal - current}</span>`;
+    } else if (newVal < current) {
+      diffEl.innerHTML = `<span style="color:var(--danger);font-weight:700;">▼ ${newVal - current}</span>`;
+    } else {
+      diffEl.innerHTML = '';
+    }
+  });
+}
+
+function closeEvalModal() { document.getElementById('evalModal').classList.remove('active'); }
+
+function saveEvaluation() {
+  const id = document.getElementById('evalPlayerId').value;
+  const players = getPlayers();
+  const player = players.find(p => p.id === id);
+  const rules = getRules();
+  const notes = document.getElementById('evalNotes').value.trim();
+
+  // Capture changes
+  const changes = [];
+  const newSkills = {};
+  rules.skillAttributes.forEach(attr => {
+    const sel = document.querySelector(`[data-eval-skill="${attr}"]`);
+    const oldVal = (player.skills && player.skills[attr]) || 0;
+    const newVal = parseInt(sel.value) || 0;
+    newSkills[attr] = newVal;
+    if (newVal !== oldVal) {
+      changes.push({ attr, from: oldVal, to: newVal });
+    }
+  });
+
+  const oldPitch = player.canPitch;
+  const oldCatch = player.canCatch;
+  const newPitch = document.getElementById('evalCanPitch').checked;
+  const newCatch = document.getElementById('evalCanCatch').checked;
+  if (newPitch !== oldPitch) changes.push({ attr: 'Can Pitch', from: oldPitch, to: newPitch });
+  if (newCatch !== oldCatch) changes.push({ attr: 'Can Catch', from: oldCatch, to: newCatch });
+
+  if (changes.length === 0 && !notes) {
+    alert('No changes to save.');
+    return;
+  }
+
+  // Save evaluation to history
+  const history = getEvalHistory();
+  history.push({
+    playerId: id,
+    playerName: `#${player.number} ${player.firstName} ${player.lastName}`,
+    date: new Date().toISOString(),
+    changes,
+    notes
+  });
+  saveEvalHistory(history);
+
+  // Update player
+  player.skills = newSkills;
+  player.canPitch = newPitch;
+  player.canCatch = newCatch;
+  savePlayers(players);
+
+  closeEvalModal();
+  renderRoster();
+  alert(`Evaluation saved: ${changes.length} change(s) recorded.`);
+}
+
+function renderEvalHistory(playerId) {
+  const history = getEvalHistory().filter(e => e.playerId === playerId);
+  const el = document.getElementById('evalHistoryList');
+
+  if (history.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;">No previous evaluations.</p>';
+    return;
+  }
+
+  let html = '';
+  [...history].reverse().forEach(entry => {
+    const date = new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    html += `<div style="margin-bottom:12px;padding:8px 12px;background:#f8f9fa;border-radius:6px;font-size:0.82rem;">
+      <div style="font-weight:600;margin-bottom:4px;">📅 ${date}</div>`;
+    entry.changes.forEach(c => {
+      if (typeof c.from === 'boolean') {
+        html += `<div>${c.attr}: ${c.from ? 'Yes' : 'No'} → ${c.to ? 'Yes' : 'No'}</div>`;
+      } else {
+        const arrow = c.to > c.from ? `<span style="color:var(--accent);">▲</span>` : `<span style="color:var(--danger);">▼</span>`;
+        html += `<div>${c.attr}: ${c.from || '-'} → ${c.to || '-'} ${arrow}</div>`;
+      }
+    });
+    if (entry.notes) html += `<div style="margin-top:4px;color:var(--text-light);font-style:italic;">💬 ${entry.notes}</div>`;
+    html += '</div>';
+  });
+  el.innerHTML = html;
 }
 
 // ========== SCHEDULE ==========
@@ -1862,7 +2035,8 @@ function exportData() {
     games: getGames(),
     rules: getRules(),
     lineups: getLineups(),
-    battingOrder: getBattingOrder()
+    battingOrder: getBattingOrder(),
+    evalHistory: getEvalHistory()
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1886,6 +2060,7 @@ function importData(event) {
       if (data.rules) saveRulesData(data.rules);
       if (data.lineups) saveLineups(data.lineups);
       if (data.battingOrder) saveBattingOrder(data.battingOrder);
+      if (data.evalHistory) saveEvalHistory(data.evalHistory);
       renderRoster();
       alert('Data restored successfully!');
     } catch (err) {
