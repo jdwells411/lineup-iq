@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lineupiq-v1';
+const CACHE_NAME = 'lineupiq-v2026021401';
 const ASSETS = [
   '/lineup-iq/',
   '/lineup-iq/index.html'
