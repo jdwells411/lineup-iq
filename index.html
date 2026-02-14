@@ -194,7 +194,7 @@
   .batting-order-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
   .batting-grip { color: var(--text-light); font-size: 1.1rem; flex-shrink: 0; cursor: grab; }
   .batting-name { flex: 1; font-weight: 600; font-size: 0.9rem; }
-  .batting-arrows { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; }
+  .batting-arrows { display: none; }
   .batting-arrows button { background: none; border: 1px solid var(--border); width: 24px; height: 20px; cursor: pointer; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; color: var(--text-light); }
   .batting-arrows button:hover { background: #f0f0f0; color: var(--text); }
   .batting-arrows button:first-child { border-radius: 4px 4px 0 0; }
@@ -1050,28 +1050,89 @@ function renderBattingOrder() {
   players.forEach(p => { playerMap[p.id] = p; });
   const el = document.getElementById('battingOrderList');
   
-  let html = '<ul class="batting-list">';
+  let html = '<ul class="batting-list" id="battingListUl">';
   currentBattingOrder.forEach((id, i) => {
     const p = playerMap[id];
     if (!p) return;
-    html += `<li class="batting-item" draggable="true" data-idx="${i}"
-      ondragstart="battingDragStart(event, ${i})"
-      ondragover="battingDragOver(event)"
-      ondragenter="battingDragEnter(event)"
-      ondragleave="battingDragLeave(event)"
-      ondrop="battingDrop(event, ${i})"
-      ondragend="battingDragEnd(event)">
+    html += `<li class="batting-item" data-idx="${i}">
       <span class="batting-grip">☰</span>
       <span class="batting-order-num">${i + 1}</span>
       <span class="batting-name">#${p.number} ${p.firstName} ${p.lastName}</span>
-      <span class="batting-arrows">
-        <button onclick="moveBatter(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▲</button>
-        <button onclick="moveBatter(${i}, 1)" ${i === currentBattingOrder.length - 1 ? 'disabled' : ''}>▼</button>
-      </span>
     </li>`;
   });
   html += '</ul>';
   el.innerHTML = html;
+  initTouchDrag();
+}
+
+// Touch-friendly drag reordering
+let touchDragEl = null;
+let touchStartY = 0;
+let touchDragIdx = null;
+let battingPlaceholder = null;
+
+function initTouchDrag() {
+  const list = document.getElementById('battingListUl');
+  if (!list) return;
+  const items = list.querySelectorAll('.batting-item');
+  items.forEach(item => {
+    item.addEventListener('touchstart', onTouchStart, { passive: false });
+    item.addEventListener('touchmove', onTouchMove, { passive: false });
+    item.addEventListener('touchend', onTouchEnd);
+    // Keep mouse drag working for desktop
+    item.setAttribute('draggable', 'true');
+    item.addEventListener('dragstart', e => battingDragStart(e, parseInt(item.dataset.idx)));
+    item.addEventListener('dragover', e => battingDragOver(e));
+    item.addEventListener('dragenter', e => battingDragEnter(e));
+    item.addEventListener('dragleave', e => battingDragLeave(e));
+    item.addEventListener('drop', e => battingDrop(e, parseInt(item.dataset.idx)));
+    item.addEventListener('dragend', e => battingDragEnd(e));
+  });
+}
+
+function onTouchStart(e) {
+  const grip = e.target.closest('.batting-grip');
+  if (!grip) return;
+  e.preventDefault();
+  touchDragEl = e.target.closest('.batting-item');
+  touchDragIdx = parseInt(touchDragEl.dataset.idx);
+  touchStartY = e.touches[0].clientY;
+  touchDragEl.classList.add('dragging');
+}
+
+function onTouchMove(e) {
+  if (!touchDragEl) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const list = document.getElementById('battingListUl');
+  const items = Array.from(list.querySelectorAll('.batting-item'));
+  items.forEach(item => item.classList.remove('drag-over'));
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (target) {
+    const targetItem = target.closest('.batting-item');
+    if (targetItem && targetItem !== touchDragEl) {
+      targetItem.classList.add('drag-over');
+    }
+  }
+}
+
+function onTouchEnd(e) {
+  if (!touchDragEl) return;
+  const touch = e.changedTouches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+  const targetItem = target ? target.closest('.batting-item') : null;
+  touchDragEl.classList.remove('dragging');
+  document.querySelectorAll('.batting-item').forEach(el => el.classList.remove('drag-over'));
+  
+  if (targetItem && targetItem !== touchDragEl) {
+    const targetIdx = parseInt(targetItem.dataset.idx);
+    const moved = currentBattingOrder.splice(touchDragIdx, 1)[0];
+    currentBattingOrder.splice(targetIdx, 0, moved);
+    saveBattingOrder(currentBattingOrder);
+    renderBattingOrder();
+  }
+  touchDragEl = null;
+  touchDragIdx = null;
 }
 
 function battingDragStart(e, idx) {
