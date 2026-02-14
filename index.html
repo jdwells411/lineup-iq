@@ -1737,12 +1737,12 @@ function renderLineupOutput() {
   
   // Grid view
   html += '<div class="lineup-grid"><table><thead><tr><th>Player</th>';
-  for (let i = 1; i <= rules.innings; i++) html += `<th>Inn ${i}</th>`;
+  for (let i = 1; i <= rules.innings; i++) html += `<th style="text-align:center;border:2px solid #333;background:#e8f0fe;">Inn ${i}</th>`;
   html += '<th>IF Inn</th><th>Bench</th></tr></thead><tbody>';
 
   available.sort((a,b) => a.number - b.number).forEach(p => {
     let ifCount = 0, benchCount = 0;
-    html += `<tr><td>#${p.number} ${p.firstName} ${p.lastName}</td>`;
+    html += `<tr><td style="font-weight:700;">#${p.number} ${p.firstName} ${p.lastName}</td>`;
     for (let inn = 1; inn <= rules.innings; inn++) {
       const pos = Object.entries(currentLineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
       const isBench = (currentLineup[inn]['BENCH'] || []).includes(p.id);
@@ -1750,17 +1750,17 @@ function renderLineupOutput() {
         const [position] = pos;
         const isInfield = INFIELD.includes(position);
         if (isInfield) ifCount++;
-        html += `<td style="${isInfield ? 'background:#ebf5fb;' : ''}">${position}</td>`;
+        html += `<td style="text-align:center;font-weight:600;border-left:2px solid #333;border-right:2px solid #333;${isInfield ? 'background:#ebf5fb;' : ''}">${position}</td>`;
       } else if (isBench) {
         benchCount++;
-        html += '<td class="bench-cell">BN</td>';
+        html += '<td style="text-align:center;font-weight:600;border-left:2px solid #333;border-right:2px solid #333;" class="bench-cell">BN</td>';
       } else {
-        html += '<td>-</td>';
+        html += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;">-</td>';
       }
     }
-    const ifStyle = ifCount < rules.minInfield ? 'color:var(--danger);font-weight:700;' : 'color:var(--accent);';
+    const ifStyle = ifCount < rules.minInfield ? 'color:var(--danger);font-weight:700;' : 'color:var(--accent);font-weight:700;';
     html += `<td style="${ifStyle}">${ifCount}</td>`;
-    html += `<td>${benchCount}</td>`;
+    html += `<td style="font-weight:600;">${benchCount}</td>`;
     html += '</tr>';
   });
   html += '</tbody></table></div>';
