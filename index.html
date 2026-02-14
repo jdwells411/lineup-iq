@@ -1722,31 +1722,31 @@ function openPrintView() {
     </div>`;
 
   // Build grid page
-  let gridHtml = `<table style="width:100%;border-collapse:collapse;font-size:1rem;color:#000;">
-    <thead><tr><th style="text-align:left;border-bottom:2px solid #333;padding:6px 8px;font-size:1rem;">Player</th>`;
-  for (let i = 1; i <= rules.innings; i++) gridHtml += `<th style="text-align:center;border:2px solid #333;padding:6px 8px;background:#e8f0fe;font-size:1rem;">Inn ${i}</th>`;
-  gridHtml += `<th style="text-align:center;border-bottom:2px solid #333;padding:6px 8px;font-size:1rem;">IF</th>
-    <th style="text-align:center;border-bottom:2px solid #333;padding:6px 8px;font-size:1rem;">BN</th></tr></thead><tbody>`;
+  let gridHtml = `<table style="width:100%;border-collapse:collapse;font-size:0.95rem;color:#000;">
+    <thead><tr><th style="text-align:left;border-bottom:2px solid #333;padding:3px 5px;font-size:0.95rem;">Player</th>`;
+  for (let i = 1; i <= rules.innings; i++) gridHtml += `<th style="text-align:center;border:2px solid #333;padding:3px 5px;background:#e8f0fe;font-size:0.95rem;">Inn ${i}</th>`;
+  gridHtml += `<th style="text-align:center;border-bottom:2px solid #333;padding:3px 5px;font-size:0.95rem;">IF</th>
+    <th style="text-align:center;border-bottom:2px solid #333;padding:3px 5px;font-size:0.95rem;">BN</th></tr></thead><tbody>`;
 
   available.sort((a,b) => a.number - b.number).forEach(p => {
     let ifCount = 0, benchCount = 0;
-    gridHtml += `<tr><td style="border-bottom:1px solid #999;padding:6px 8px;font-weight:700;font-size:0.95rem;">#${p.number} ${p.firstName} ${p.lastName}</td>`;
+    gridHtml += `<tr><td style="border-bottom:1px solid #999;padding:3px 5px;font-weight:700;font-size:0.9rem;">#${p.number} ${p.firstName} ${p.lastName}</td>`;
     for (let inn = 1; inn <= rules.innings; inn++) {
       const pos = Object.entries(currentLineup[inn]).find(([pos, pid]) => pid === p.id && pos !== 'BENCH');
       const isBench = (currentLineup[inn]['BENCH'] || []).includes(p.id);
       if (pos) {
         const [position] = pos;
         if (INFIELD.includes(position)) ifCount++;
-        gridHtml += `<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:6px 8px;font-weight:600;font-size:0.95rem;${INFIELD.includes(position)?'background:#e8f4fd;':''}">${position}</td>`;
+        gridHtml += `<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:3px 5px;font-weight:600;font-size:0.9rem;${INFIELD.includes(position)?'background:#e8f4fd;':''}">${position}</td>`;
       } else if (isBench) {
         benchCount++;
-        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:6px 8px;font-weight:600;font-size:0.95rem;background:#fef9e7;">BN</td>';
+        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:3px 5px;font-weight:600;font-size:0.9rem;background:#fef9e7;">BN</td>';
       } else {
-        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:6px 8px;font-size:0.95rem;">-</td>';
+        gridHtml += '<td style="text-align:center;border-left:2px solid #333;border-right:2px solid #333;border-bottom:1px solid #999;padding:3px 5px;font-size:0.9rem;">-</td>';
       }
     }
-    gridHtml += `<td style="text-align:center;border-bottom:1px solid #999;padding:6px 8px;font-weight:700;font-size:0.95rem;">${ifCount}</td>`;
-    gridHtml += `<td style="text-align:center;border-bottom:1px solid #999;padding:6px 8px;font-weight:600;font-size:0.95rem;">${benchCount}</td></tr>`;
+    gridHtml += `<td style="text-align:center;border-bottom:1px solid #999;padding:3px 5px;font-weight:700;font-size:0.9rem;">${ifCount}</td>`;
+    gridHtml += `<td style="text-align:center;border-bottom:1px solid #999;padding:3px 5px;font-weight:600;font-size:0.9rem;">${benchCount}</td></tr>`;
   });
   // Close the box on the bottom of inning columns
   gridHtml += `<tr><td style="border:none;"></td>`;
@@ -1757,9 +1757,9 @@ function openPrintView() {
   // Build field pages
   let fieldPages = '';
   for (let inn = 1; inn <= rules.innings; inn++) {
-    fieldPages += `<div style="page-break-before:always;padding:20px;">`;
+    fieldPages += `<div style="page-break-before:always;padding:10px;">`;
     fieldPages += gameHeader;
-    fieldPages += `<h3 style="text-align:center;font-size:1.1rem;margin:12px 0;">Inning ${inn}</h3>`;
+    fieldPages += `<h3 style="text-align:center;font-size:1rem;margin:6px 0;">Inning ${inn}</h3>`;
     fieldPages += `<div style="position:relative;width:420px;height:380px;margin:0 auto;">`;
     fieldPages += fieldSVG.replace('width:100%;height:100%', 'width:420px;height:380px');
     
@@ -1779,7 +1779,7 @@ function openPrintView() {
 
     const bench = currentLineup[inn]['BENCH'] || [];
     if (bench.length > 0) {
-      fieldPages += '<div style="text-align:center;margin-top:12px;"><strong>Bench:</strong> ';
+      fieldPages += '<div style="text-align:center;margin-top:8px;"><strong>Bench:</strong> ';
       bench.forEach(pid => {
         const p = playerMap[pid];
         if (p) fieldPages += `<span style="background:#fef9e7;padding:2px 10px;border-radius:12px;font-size:0.8rem;font-weight:600;margin:0 4px;">#${p.number} ${p.firstName}</span>`;
@@ -1792,15 +1792,15 @@ function openPrintView() {
   // Build batting order for print
   let battingHtml = '';
   if (currentBattingOrder.length > 0) {
-    battingHtml = `<h3 style="text-align:center;margin:16px 0 8px;">Batting Order</h3>
+    battingHtml = `<h3 style="text-align:center;margin:10px 0 4px;font-size:0.95rem;">Batting Order</h3>
       <table style="width:auto;margin:0 auto;border-collapse:collapse;font-size:0.85rem;">
-      <thead><tr><th style="border-bottom:2px solid #333;padding:4px 12px;text-align:center;">#</th>
-      <th style="border-bottom:2px solid #333;padding:4px 12px;text-align:left;">Player</th></tr></thead><tbody>`;
+      <thead><tr><th style="border-bottom:2px solid #333;padding:2px 8px;text-align:center;">#</th>
+      <th style="border-bottom:2px solid #333;padding:2px 8px;text-align:left;">Player</th></tr></thead><tbody>`;
     currentBattingOrder.forEach((id, i) => {
       const p = playerMap[id];
       if (!p) return;
-      battingHtml += `<tr><td style="border-bottom:1px solid #ddd;padding:4px 12px;text-align:center;font-weight:700;">${i + 1}</td>
-        <td style="border-bottom:1px solid #ddd;padding:4px 12px;">#${p.number} ${p.firstName} ${p.lastName}</td></tr>`;
+      battingHtml += `<tr><td style="border-bottom:1px solid #ddd;padding:2px 8px;text-align:center;font-weight:700;">${i + 1}</td>
+        <td style="border-bottom:1px solid #ddd;padding:2px 8px;">#${p.number} ${p.firstName} ${p.lastName}</td></tr>`;
     });
     battingHtml += '</tbody></table>';
   }
@@ -1823,13 +1823,10 @@ function openPrintView() {
     <div class="no-print" style="text-align:center;padding:12px;background:#f5f6fa;border-bottom:1px solid #ddd;">
       <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
     </div>
-    <div style="padding:20px;">
+    <div style="padding:10px;">
       ${gameHeader}
-      <h3 style="text-align:center;margin:12px 0;">Lineup Grid</h3>
+      <h3 style="text-align:center;margin:6px 0;font-size:0.95rem;">Lineup Grid</h3>
       ${gridHtml}
-    </div>
-    <div style="page-break-before:always;padding:20px;">
-      ${gameHeader}
       ${battingHtml}
     </div>
     ${fieldPages}
