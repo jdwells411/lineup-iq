@@ -118,20 +118,23 @@
   .lineup-grid .bench-cell { background: #fef9e7; }
   .lineup-grid .absent-row { opacity: 0.4; }
 
-  /* Diamond */
-  .diamond-container { position: relative; width: 340px; height: 340px; margin: 20px auto; }
-  .diamond-pos { position: absolute; background: var(--card); border: 2px solid var(--primary); border-radius: 50%; width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; box-shadow: var(--shadow); }
-  .diamond-pos .pos-label { color: var(--text-light); font-size: 0.6rem; text-transform: uppercase; }
-  .diamond-pos .pos-player { color: var(--text); font-size: 0.75rem; }
-  .pos-P { left: 140px; top: 180px; }
-  .pos-C { left: 140px; top: 280px; }
-  .pos-1B { left: 260px; top: 160px; }
-  .pos-2B { left: 220px; top: 100px; }
-  .pos-SS { left: 80px; top: 100px; }
-  .pos-3B { left: 20px; top: 160px; }
-  .pos-LF { left: 10px; top: 20px; }
-  .pos-CF { left: 140px; top: 0px; }
-  .pos-RF { left: 270px; top: 20px; }
+  /* Baseball field */
+  .field-container { position: relative; width: 420px; height: 440px; margin: 20px auto; }
+  .field-svg { width: 100%; height: 100%; }
+  .field-pos { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .field-pos .pos-dot { width: 44px; height: 44px; border-radius: 50%; background: #fff; border: 2px solid var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 2; position: relative; }
+  .field-pos .pos-label { font-size: 0.6rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-pos .pos-player { font-size: 0.7rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+  /* Positions on the field — realistic baseball layout */
+  .fpos-P  { left: 189px; top: 260px; }
+  .fpos-C  { left: 189px; top: 370px; }
+  .fpos-1B { left: 310px; top: 230px; }
+  .fpos-2B { left: 268px; top: 170px; }
+  .fpos-SS { left: 112px; top: 170px; }
+  .fpos-3B { left: 58px;  top: 230px; }
+  .fpos-LF { left: 30px;  top: 60px; }
+  .fpos-CF { left: 189px; top: 18px; }
+  .fpos-RF { left: 348px; top: 60px; }
 
   /* Bench list */
   .bench-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
@@ -184,7 +187,7 @@
   @media (max-width: 768px) {
     nav { overflow-x: auto; }
     .form-row { flex-direction: column; }
-    .diamond-container { transform: scale(0.85); transform-origin: top center; }
+    .field-container { transform: scale(0.8); transform-origin: top center; }
   }
 </style>
 </head>
@@ -1219,18 +1222,48 @@ function renderLineupOutput() {
   
   for (let inn = 1; inn <= rules.innings; inn++) {
     html += `<div class="inning-view" id="inningView_${inn}" style="${inn===1?'':'display:none;'}">`;
-    html += '<div class="diamond-container">';
+    html += '<div class="field-container">';
+    // SVG baseball field
+    html += `<svg class="field-svg" viewBox="0 0 420 440" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outfield grass -->
+      <path d="M 210 380 L 10 100 A 280 280 0 0 1 410 100 Z" fill="#4a8c3f" stroke="#3d7534" stroke-width="1"/>
+      <!-- Infield dirt -->
+      <path d="M 210 340 L 100 210 L 210 130 L 320 210 Z" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+      <!-- Infield grass (between mound and bases) -->
+      <circle cx="210" cy="240" r="50" fill="#4a8c3f"/>
+      <!-- Pitcher mound -->
+      <circle cx="210" cy="265" r="12" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+      <circle cx="210" cy="265" r="3" fill="#fff"/>
+      <!-- Base paths -->
+      <line x1="210" y1="340" x2="320" y2="230" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="320" y1="230" x2="210" y2="130" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="210" y1="130" x2="100" y2="230" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <line x1="100" y1="230" x2="210" y2="340" stroke="#fff" stroke-width="2" opacity="0.6"/>
+      <!-- Bases -->
+      <rect x="204" y="334" width="12" height="12" fill="#fff" transform="rotate(45 210 340)"/>
+      <rect x="314" y="224" width="11" height="11" fill="#fff" transform="rotate(45 320 230)"/>
+      <rect x="205" y="124" width="11" height="11" fill="#fff" transform="rotate(45 210 130)"/>
+      <rect x="95" y="224" width="11" height="11" fill="#fff" transform="rotate(45 100 230)"/>
+      <!-- Foul lines -->
+      <line x1="210" y1="380" x2="0" y2="80" stroke="#fff" stroke-width="2" opacity="0.4"/>
+      <line x1="210" y1="380" x2="420" y2="80" stroke="#fff" stroke-width="2" opacity="0.4"/>
+      <!-- Batter's box area -->
+      <rect x="195" y="365" width="30" height="40" rx="3" fill="#c4956a" stroke="#a67c52" stroke-width="1"/>
+      <!-- Outfield fence arc -->
+      <path d="M 10 100 A 280 280 0 0 1 410 100" fill="none" stroke="#2c3e50" stroke-width="3" opacity="0.3"/>
+    </svg>`;
+    // Player position labels overlaid
     POSITIONS.forEach(pos => {
       const pid = currentLineup[inn][pos];
       const player = pid ? playerMap[pid] : null;
       const name = player ? `#${player.number} ${player.firstName}` : '—';
-      html += `<div class="diamond-pos pos-${pos}"><span class="pos-label">${pos}</span><span class="pos-player">${name}</span></div>`;
+      html += `<div class="field-pos fpos-${pos}"><div class="pos-dot"><span class="pos-label">${pos}</span><span class="pos-player">${name}</span></div></div>`;
     });
     html += '</div>';
     
     const bench = currentLineup[inn]['BENCH'] || [];
     if (bench.length > 0) {
-      html += '<div style="text-align:center;"><strong>Bench:</strong> <div class="bench-list" style="justify-content:center;">';
+      html += '<div style="text-align:center;margin-top:8px;"><strong>Bench:</strong> <div class="bench-list" style="justify-content:center;">';
       bench.forEach(pid => {
         const p = playerMap[pid];
         if (p) html += `<span class="bench-player">#${p.number} ${p.firstName}</span>`;
